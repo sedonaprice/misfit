@@ -1,0 +1,6 @@
+# linename  wave_l   wave_u
+# Range to mask lines and somewhat close lines
+HA6565     6533.60   6599.60
+HB4863	   4852.71   4872.71
+OIII5008   4928.24   5038.24
+#OIII5008   4933.24   5043.24

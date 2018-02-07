@@ -1,0 +1,21 @@
+numpy
+scipy
+astropy
+matplotlib
+astropy.wcs
+lmfit  
+
+psutil
+numba/jit
+
+emcee
+acor
+
+time
+datetime
+
+corner (dfm / github)
+
+## sedonaprice/corner.py (forked from dfm/corner.py) -- suppy as corner_annotated under misfit
+
+

@@ -1,0 +1,8 @@
+# linename  wave_l   wave_u
+# Range around lines (and close pair)
+HA6565    6480.     6650.
+HB4863	  4800.     4920.
+OIII5008  4950.     5060.
+Halpha    6480.     6650.
+Hbeta	  4800.     4920.
+OIII      4930.     5060.

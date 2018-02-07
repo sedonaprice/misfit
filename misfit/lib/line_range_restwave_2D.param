@@ -1,0 +1,6 @@
+# linename  wave_l   wave_u
+# Range around lines (and close pair)
+HA6565    6555.60   6573.60
+HB4863    4856.71   4868.71
+OIII5008  5002.29   5015.24
+#OIII5008  4951.29   5017.24

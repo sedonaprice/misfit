@@ -1,0 +1,7 @@
+# name   lineset
+Halpha    HA6565    
+Hbeta     HB4863
+OIII	  OIII5008,OIII4960
+NII       NII6550,NII6585
+SII       SII6733,SII6718
+OII       OII3727,OII3730

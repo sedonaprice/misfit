@@ -1,0 +1,6 @@
+# linename  wave_l   wave_u
+# Range around lines including room for continuum
+HA6565    6454.60    6674.60
+HB4863	  4787.71    4932.71
+OIII5008  4880.24    5118.24
+#OIII5008  4933.24    5118.24

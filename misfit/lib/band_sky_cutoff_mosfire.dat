@@ -1,0 +1,5 @@
+# band  sn_cutoff   units
+K     2.      timesMedianErr
+H     3.      timesMedianErr
+J     3.      timesMedianErr
+Y     3.      timesMedianErr
