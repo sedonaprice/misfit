@@ -585,6 +585,27 @@ def add_v_re_22(fitEmis2D):
     """
     Add velocity, dispersion at R_E and r_2.2 (eg, 2.2*r_s, or 2.2/1.67*R_E assuming n=1)
     """
+    
+    if fitEmis2D.kinModelOptions.absvalsigma:
+        # Take abs of dispersion chain values before continuing
+        if fitEmis2D.kinModel.kinProfile.dispProfile.n_params == 1:
+            ind_all = fitEmis2D.kinModel.kinProfile.velProfile.n_params
+            j = 0
+            free_inds = []
+            for i in _six.moves.xrange(len(fitEmis2D.kinModel.theta)):
+                if fitEmis2D.kinModel.kinProfile.theta_vary[i]:
+                    free_inds.append(j)
+                    j += 1
+                else:
+                    free_inds.append(None)
+            ind = free_inds[ind_all]
+            fitEmis2D.sampler_dict['flatchain'][:, ind] = \
+                   _np.abs(fitEmis2D.sampler_dict['flatchain'][:, ind]) 
+            fitEmis2D.sampler_dict['chain'][:, :, ind] = \
+                   _np.abs(fitEmis2D.sampler_dict['chain'][:, :, ind])
+        else:
+            raise ValueError
+    
     i_free = 0
     len_chain = fitEmis2D.sampler_dict['flatchain'].shape[0]
     for i in _six.moves.xrange(len(fitEmis2D.kinModel.theta)):
@@ -601,6 +622,7 @@ def add_v_re_22(fitEmis2D):
                             _np.array([_np.repeat(fitEmis2D.kinModel.theta[i], len_chain)]), axis=0)
             else:
                 theta_chain = _np.array([_np.repeat(fitEmis2D.kinModel.theta[i], len_chain)])
+    
     
     fitEmis2D.kinProfile.update_theta(theta_chain)
     

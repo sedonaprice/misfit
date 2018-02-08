@@ -28,6 +28,7 @@ class KinModel2DOptions(object):
         self.pad_factor = 0.5
         self.do_position_wave_shift = False
         self.do_inst_res_conv_effective = False
+        self.absvalsigma = False
         
         self.setAttr(**kwargs)
         
