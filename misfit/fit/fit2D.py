@@ -153,6 +153,9 @@ class FitEmissionLines2D(object):
         # Holds results:
         self.sampler_dict = None
         
+        # Skip prep calcs: eg, fast creation for re-read of saved objects:
+        self.skip_fit_prep_calcs = False
+        
         
         self.setAttr(**kwargs)
         
@@ -205,7 +208,8 @@ class FitEmissionLines2D(object):
         
             
         # Setup spectrum:
-        self.galaxy.spec2D.fit_prep_calcs(self.galaxy, self.instrument)
+        if not self.skip_fit_prep_calcs:
+            self.galaxy.spec2D.fit_prep_calcs(self.galaxy, self.instrument)
         
         
     def fit(self, **kwargs):
@@ -386,16 +390,14 @@ class FitEmissionLines2D(object):
             for k in fitEmis2DResults.__dict__.keys():
                 self.__dict__[k] = fitEmis2DResults.__dict__[k]
             
-            
-            
     def plot_bestfit_model(self):
-        if self.mcmcOptions.filename_plot_bestfit is not None:
-            _misfit_plot.plot_bestfit_model(self, 
-                fileout=self.mcmcOptions.filename_plot_bestfit,verbose=False)
+        #if self.mcmcOptions.filename_plot_bestfit is not None:
+        _misfit_plot.plot_bestfit_model(self, 
+            fileout=self.mcmcOptions.filename_plot_bestfit,verbose=False)
         
     def plot_param_corner(self):
-        if self.mcmcOptions.filename_plot_param_corner is not None:
-            _misfit_plot.plot_param_corner(self, 
-                fileout=self.mcmcOptions.filename_plot_param_corner,verbose=False)
+        #if self.mcmcOptions.filename_plot_param_corner is not None:
+        _misfit_plot.plot_param_corner(self, 
+            fileout=self.mcmcOptions.filename_plot_param_corner,verbose=False)
 
         

@@ -33,7 +33,7 @@ def read_line_names(param_filename, name=None):
     
     wh = _np.where(data['name'] == name)[0]
     if len(wh) == 0:
-        raise ValueError("Problem with param file: %s" % param_filename)
+        raise ValueError("Problem with param file: {}, name: {}".format(param_filename, name))
     else:
         wh = wh[0]
     
@@ -54,7 +54,7 @@ def read_restwave(param_filename, linename=None):
     
     wh = _np.where(data['linename'] == linename)[0]
     if len(wh) == 0:
-        raise ValueError("Problem with param file: %s" % param_filename)
+        raise ValueError("Problem with param file: {}".format(param_filename) )
     else:
         wh = wh[0]
     
@@ -72,7 +72,7 @@ def read_line_ratio(param_filename, linename=None):
     
     wh = _np.where(data['linename'] == linename)[0]
     if len(wh) == 0:
-        raise ValueError("Problem with param file: %s" % param_filename)
+        raise ValueError("Problem with param file: {}".format(param_filename) )
     else:
         wh = wh[0]
     
@@ -89,7 +89,7 @@ def read_wave_range(param_filename,linename=None):
     
     wh = _np.where(data['linename'] == linename)[0]
     if len(wh) == 0:
-        raise ValueError("Problem with param file: %s" % param_filename)
+        raise ValueError("Problem with param file: {}".format(param_filename) )
     else:
         wh = wh[0]
     
@@ -107,7 +107,7 @@ def read_skyline_band_cutoff(param_filename, band=None):
     
     wh = _np.where(data['band'] == band)[0]
     if len(wh) == 0:
-        raise ValueError("Problem with param file: %s" % param_filename)
+        raise ValueError("Problem with param file: {}".format(param_filename) )
     else:
         wh = wh[0]
     

@@ -517,6 +517,15 @@ class AperModel2D(object):
         # Return calcs in wave / velocity space
         self.spec_type = 'wave'  # wave / velocity
         
+        
+        # Options for handling v. small dispersion calculations:
+        self.absvalsigma = False
+        self.adaptive_upsample_wave = False
+        self.adaptive_upsample_factor = 3.
+        self.sigma_floor = False
+        self.sigma_floor_value = None
+        
+        
         self.setAttr(**kwargs)
         self.make_model()
 
@@ -527,6 +536,19 @@ class AperModel2D(object):
     def setup_calcs(self):
         self.setup_model_grid()
         
+        if self.adaptive_upsample_wave:
+            self.wave_arr_real = self.wave_arr.copy()
+            self.nWave_real = self.nWave
+            self.delt_wave_real = self.delt_wave
+            self.I_matrix_real = self.I_matrix.copy()
+            self.wave_ref_matrix_real = self.wave_ref_matrix.copy()
+            
+        if (self.sigma_floor) | (self.adaptive_upsample_wave):
+            if self.spec_type == 'wave':
+                self.sigma_floor_value = (self.delt_wave/self.lam0_primary)*c_kms /(2.35*2.)
+            elif self.spec_type == 'velocity':
+                self.sigma_floor_value = self.delt_wave/(2.35*2.)
+        
         # Initialize PSF:
         # Set PSF convolution:
         ## Convolve the spectra cube with the PSF:
@@ -536,7 +558,7 @@ class AperModel2D(object):
         yc = _np.average(self.y_arr)
         x_arr_trim = self.x_arr[_np.abs(self.x_arr-xc) <= self.instrument.PSF.PSF_FWHM]
         y_arr_trim = self.y_arr[_np.abs(self.y_arr-yc) <= self.instrument.PSF.PSF_FWHM]
-
+        
         #x_arr_flat = _np.tile(x_arr_trim, (len(y_arr_trim),1))
         #y_arr_flat = _np.tile(_np.array([y_arr_trim]).T, (1,len(x_arr_trim)))
         
@@ -554,30 +576,32 @@ class AperModel2D(object):
         self.instrument.PSF.set_conv_stamp(kern3D)
         
     def make_model(self):
+        
         self.setup_calcs()                 # Setup grid, values
         
-        #start = time.time()
-        self.calculate_spectral_cube()                     # Make specral cube
-        # end = time.time()
-        # print("          calculate_spectral_cube:", end-start)
-        
-        
-        self.convolve_spectral_cube_PSF()                  # Convolve spectral cube with PSF
-        self.trim_downsample_spectral_cube()               # Trim and downsample cube
-        self.convolve_instrument_resolution()              # Convolve with instrument res
-        
-        ## galaxy.spec2D.flux: shape is nY, nWave, so transpose to return!
-        self.model = self.model_out.T
+        self.do_model_calcs()
         
     def update_model(self, **kwargs):
         self.setAttr(**kwargs)
         
+        self.do_model_calcs()
+        
+    def do_model_calcs(self):    
+        
+        self.kinProfile.update_theta(self.theta)
+        
+        if self.adaptive_upsample_wave:
+            self.check_do_upsample_wave()
+            
         self.calculate_spectral_cube()                     # Make specral cube
         
         self.convolve_spectral_cube_PSF()                  # Convolve spectral cube with PSF
         self.trim_downsample_spectral_cube()               # Trim and downsample cube
         self.convolve_instrument_resolution()              # Convolve with instrument res
         
+        
+        if self.adaptive_upsample_wave:
+            self.downsample_to_real_wave()
         
         ## galaxy.spec2D.flux: shape is nY, nWave, so transpose to return!
         self.model = self.model_out.T
@@ -667,12 +691,31 @@ class AperModel2D(object):
         self.nWave = len(self.wave_arr)
         self.delt_wave = _np.average(self.wave_arr[1:]-self.wave_arr[:-1])
         
+        
         self.I_wide  = self.intensityProfile.int(self.r, self.zint)
         # Shape nWave, nZ, nY, nX
         self.I_matrix = _np.tile(self.I_wide, (self.nWave,1,1,1))
         self.wave_ref_matrix = _np.repeat(self.wave_arr, 
                 self.nZ*self.nY*self.nX).reshape((self.nWave,self.nZ,self.nY,self.nX))
         
+    def check_do_upsample_wave(self):
+        if (_np.abs(self.kinProfile.dispProfile.theta) < self.sigma_floor_value) : 
+            # Create new array that has finer sampling:
+            self.delt_wave /= _np.float(self.adaptive_upsample_factor)
+            
+            wave_arr = _np.linspace(self.wave_arr.min(), self.wave_arr.max(), 
+                    num=((self.wave_arr.max()-self.wave_arr.min())/self.delt_wave + 1) )
+            
+            self.wave_arr = wave_arr
+            self.nWave = len(self.wave_arr)
+            
+            # Shape nWave, nZ, nY, nX
+            self.I_matrix = _np.tile(self.I_wide, (self.nWave,1,1,1))
+            self.wave_ref_matrix = _np.repeat(self.wave_arr, 
+                    self.nZ*self.nY*self.nX).reshape((self.nWave,self.nZ,self.nY,self.nX))
+            
+            
+            
     def calculate_spectral_cube(self):
         # if self.I_wide is None:
         #     I_wide = self.intensityProfile.int(self.r, self.zint)
@@ -688,6 +731,13 @@ class AperModel2D(object):
         if self.debug:
             self.V_wide = V_wide
             self.I_Vsq_wide = I_wide * (V_wide**2)
+        
+        #
+        if self.absvalsigma:
+            self.kinProfile.dispProfile.theta = _np.abs(self.kinProfile.dispProfile.theta)
+        if self.sigma_floor:
+            if _np.abs(self.kinProfile.dispProfile.theta) < self.sigma_floor_value:
+                self.kinProfile.dispProfile.theta = _np.array([self.sigma_floor_value])
         
         sigma_wide = self.kinProfile.sigma(self.r,self.zint)
         
@@ -784,8 +834,15 @@ class AperModel2D(object):
                                 self.wave_arr, self.inst_disp_wave)
 
 
-
-
+    def downsample_to_real_wave(self):
+        self.model_out = _kfuncs.rebin(self.model_out, 
+                            self.nWave_real, self.n_pix_y_whole)
+        # Reset other parameters to original values:
+        self.wave_arr = self.wave_arr_real.copy()
+        self.nWave = self.nWave_real
+        self.delt_wave = self.delt_wave_real
+        self.I_matrix = self.I_matrix_real.copy()
+        self.wave_ref_matrix = self.wave_ref_matrix_real.copy()
 
 
 

@@ -117,6 +117,7 @@ def add_sigma_collapse_z(I_wide, V_wide, sigma_wide,
         for i in _six.moves.xrange(len(restwave_arr)):
             lam0 = restwave_arr[i] * (1.+z)
             # Sigma = sigma_profile(r)
+            # Crude way of handling potential sigma = 0: just checking for MAX, not all values:
             if _np.abs(sigma_wide).max() > 0.:
                 sigma_lam_arr = (sigma_wide/c_kms)*lam0
                 scale = 1/(sigma_lam_arr*_np.sqrt(2.*_np.pi))
@@ -170,14 +171,18 @@ def I_simple_collapse(I_wide, V_wide, wave_arr,
                 I = I_wide[m,j,k]
                 lam_diff = _np.abs(lam - wave_arr)
                 
-                if _np.abs(lam_diff).min() != 0.:
-                    wh_near = _np.where(_np.abs(lam_diff) <= lam_step)[0]
-                    tmp_fac = (lam_step - _np.abs(lam_diff[wh_near]))
-                    I_Vxy[wh_near,j,k] += tmp_fac/_np.sum(tmp_fac)*I*delt_z
-                    
-                else:
-                    wh_closest = _np.argmin(v_diff)
-                    I_Vxy[wh_closest,j,k] += I*delt_z
+                # Force it all into the closest pixel:
+                wh_closest = _np.argmin(v_diff)
+                I_Vxy[wh_closest,j,k] += I*delt_z
+                
+                # if _np.abs(lam_diff).min() != 0.:
+                #     wh_near = _np.where(_np.abs(lam_diff) <= lam_step)[0]
+                #     tmp_fac = (lam_step - _np.abs(lam_diff[wh_near]))
+                #     I_Vxy[wh_near,j,k] += tmp_fac/_np.sum(tmp_fac)*I*delt_z
+                #     
+                # else:
+                #     wh_closest = _np.argmin(v_diff)
+                #     I_Vxy[wh_closest,j,k] += I*delt_z
     
     return I_Vxy
     

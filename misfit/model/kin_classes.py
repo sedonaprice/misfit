@@ -80,8 +80,7 @@ class DispConstProfile(DispProfile):
         self.name = 'DispConstProfile'
         
     def sigma(self, r, z):
-        # enforce >= 0. dispersion
-        return 0.*r + _np.abs( self.theta[0] )
+        return 0.*r + self.theta[0] 
 
 
 

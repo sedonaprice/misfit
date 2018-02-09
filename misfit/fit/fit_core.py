@@ -593,7 +593,7 @@ def add_v_re_22(fitEmis2D):
             j = 0
             free_inds = []
             for i in _six.moves.xrange(len(fitEmis2D.kinModel.theta)):
-                if fitEmis2D.kinModel.kinProfile.theta_vary[i]:
+                if fitEmis2D.kinModel.theta_vary[i]:
                     free_inds.append(j)
                     j += 1
                 else:

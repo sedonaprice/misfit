@@ -28,7 +28,12 @@ class KinModel2DOptions(object):
         self.pad_factor = 0.5
         self.do_position_wave_shift = False
         self.do_inst_res_conv_effective = False
+        
+        # Options for handling v. small dispersion calculations:
         self.absvalsigma = False
+        self.adaptive_upsample_wave = False
+        self.adaptive_upsample_factor = 3.
+        self.sigma_floor = False
         
         self.setAttr(**kwargs)
         
@@ -162,11 +167,17 @@ class KinModel2D(object):
                                 nSubpixels=self.kinModelOptions.nSubpixels,
                                 pad_factor=self.kinModelOptions.pad_factor,
                                 do_position_wave_shift=self.kinModelOptions.do_position_wave_shift,
-                                do_inst_res_conv_effective=self.kinModelOptions.do_inst_res_conv_effective)#,
+                                do_inst_res_conv_effective=self.kinModelOptions.do_inst_res_conv_effective,
+                                absvalsigma=self.kinModelOptions.absvalsigma, 
+                                adaptive_upsample_wave=self.kinModelOptions.adaptive_upsample_wave, 
+                                adaptive_upsample_factor=self.kinModelOptions.adaptive_upsample_factor, 
+                                sigma_floor=self.kinModelOptions.sigma_floor)#,
         else:
-            self.aperModel.update_model(theta=self.theta, 
-                                kinProfile=self.kinProfile)
-        
+            # self.aperModel.update_model(theta=self.theta, 
+            #                     kinProfile=self.kinProfile)
+            
+            self.aperModel.update_model(theta=self.theta)
+            
         # # Save the 2D model to base part of class
         self.model = self.aperModel.model.copy()
         if not self.no_scale:
@@ -177,11 +188,12 @@ class KinModel2D(object):
         if len(theta_fitting) != self.n_free_param:
             raise ValueError("Number of fitting parameters does not match initialized number of free parameters")
         
-        self.update_parameters(theta_fitting)
-        self.aperModel.kinProfile.update_theta(self.theta)
+        self.update_parameters(theta_fitting)       # expand theta_fitting into full model theta
+        #self.aperModel.kinProfile.update_theta(self.theta)
         
-        self.aperModel.update_model(theta=self.theta, 
-                                kinProfile=self.aperModel.kinProfile)
+        # self.aperModel.update_model(theta=self.theta, 
+        #                         kinProfile=self.aperModel.kinProfile)
+        self.aperModel.update_model(theta=self.theta)
         
         # # Save the 2D model to base part of class
         self.model = self.aperModel.model.copy()
@@ -219,10 +231,14 @@ class KinModel2D(object):
                                 pad_factor=self.kinModelOptions.pad_factor,
                                 do_position_wave_shift=self.kinModelOptions.do_position_wave_shift,
                                 do_inst_res_conv_effective=self.kinModelOptions.do_inst_res_conv_effective,
+                                absvalsigma=self.kinModelOptions.absvalsigma, 
+                                adaptive_upsample_wave=self.kinModelOptions.adaptive_upsample_wave, 
+                                sigma_floor=self.kinModelOptions.sigma_floor, 
                                 debug=self.debug)#,
         else:
-            self.aperModel.update_model(theta=self.theta, 
-                                kinProfile=self.kinProfile)
+            # self.aperModel.update_model(theta=self.theta, 
+            #                     kinProfile=self.kinProfile)
+            self.aperModel.update_model(theta=self.theta)
         
         ###################
         # Do downsampling:
@@ -253,10 +269,11 @@ class KinModel2D(object):
             raise ValueError("Number of fitting parameters does not match initialized number of free parameters")
         
         self.update_parameters(theta_fitting)
-        self.aperModel.kinProfile.update_theta(self.theta)
-        
-        self.aperModel.update_model(theta=self.theta, 
-                                kinProfile=self.aperModel.kinProfile)
+        # self.aperModel.kinProfile.update_theta(self.theta)
+        # 
+        # self.aperModel.update_model(theta=self.theta, 
+        #                         kinProfile=self.aperModel.kinProfile)
+        self.aperModel.update_model(theta=self.theta)
         
         # # Save the 2D model to base part of class
         self.model_cube = self.aperModel.spectra_cube.copy()
