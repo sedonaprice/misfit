@@ -31,9 +31,9 @@ class KinModel2DOptions(object):
         
         # Options for handling v. small dispersion calculations:
         self.absvalsigma = False
-        self.adaptive_upsample_wave = False
+        self.adaptive_upsample_wave = True
         self.adaptive_upsample_factor = 3.
-        self.sigma_floor = False
+        self.sigma_floor = True
         
         self.setAttr(**kwargs)
         
