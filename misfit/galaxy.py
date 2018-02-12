@@ -570,6 +570,13 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
         """
         self = _galaxy_utils.get_m0_lam0_pos_2D(self, galaxy)
         
+    def fit_emission_y_profile(self, galaxy, instrument, filename_plot=None):
+        if not self.prepared_for_fitting:
+            raise ValueError("Spectrum must have continuum subtracted first, etc")
+        
+        self = _galaxy_utils.fit_emission_y_profile(self, galaxy, instrument, filename_plot=filename_plot)
+        
+        
         
 class Pstamp(object):
     """

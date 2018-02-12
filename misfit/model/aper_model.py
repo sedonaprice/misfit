@@ -524,6 +524,7 @@ class AperModel2D(object):
         self.adaptive_upsample_factor = 3.
         self.sigma_floor = False
         self.sigma_floor_value = None
+        self.sigma_upsample_value = None
         
         
         self.setAttr(**kwargs)
@@ -535,20 +536,37 @@ class AperModel2D(object):
         
     def setup_calcs(self):
         self.setup_model_grid()
-        
+            
+        if (self.sigma_floor):
+            extra_floor_fact = 1.    # cover cases  when 1 FWHM can fit in 1 pix
+            if self.spec_type == 'wave':
+                self.sigma_floor_value = extra_floor_fact*(self.delt_wave/self.lam0_primary)*c_kms /(2.35)
+            elif self.spec_type == 'velocity':
+                self.sigma_floor_value = extra_floor_fact*self.delt_wave/(2.35)
+            
         if self.adaptive_upsample_wave:
             self.wave_arr_real = self.wave_arr.copy()
             self.nWave_real = self.nWave
             self.delt_wave_real = self.delt_wave
             self.I_matrix_real = self.I_matrix.copy()
             self.wave_ref_matrix_real = self.wave_ref_matrix.copy()
-            
-        if (self.sigma_floor) | (self.adaptive_upsample_wave):
+                    
+            extra_floor_fact = 1.    # cover cases  when 1 FWHM can fit in 1 pix
             if self.spec_type == 'wave':
-                self.sigma_floor_value = (self.delt_wave/self.lam0_primary)*c_kms /(2.35*2.)
+                self.sigma_upsample_value = extra_floor_fact*(self.delt_wave/self.lam0_primary)*c_kms /(2.35)
             elif self.spec_type == 'velocity':
-                self.sigma_floor_value = self.delt_wave/(2.35*2.)
-        
+                self.sigma_upsample_value = extra_floor_fact*self.delt_wave/(2.35)
+            if self.sigma_floor:
+                extra_floor_fact = 0.5    # cover cases  when 2 FWHM can fit in 1 pix
+                if self.spec_type == 'wave':
+                    self.sigma_floor_value = \
+                        extra_floor_fact*((self.delt_wave/self.adaptive_upsample_factor)/self.lam0_primary)*\
+                                c_kms /(2.35)
+                elif self.spec_type == 'velocity':
+                    self.sigma_floor_value = \
+                        extra_floor_fact*(self.delt_wave/self.adaptive_upsample_factor)/(2.35)
+                    
+                    
         # Initialize PSF:
         # Set PSF convolution:
         ## Convolve the spectra cube with the PSF:
@@ -699,15 +717,16 @@ class AperModel2D(object):
                 self.nZ*self.nY*self.nX).reshape((self.nWave,self.nZ,self.nY,self.nX))
         
     def check_do_upsample_wave(self):
-        if (_np.abs(self.kinProfile.dispProfile.theta) < self.sigma_floor_value) : 
+        if (_np.abs(self.kinProfile.dispProfile.theta) < self.sigma_upsample_value) : 
             # Create new array that has finer sampling:
-            self.delt_wave /= _np.float(self.adaptive_upsample_factor)
+            self.delt_wave = self.delt_wave_real / _np.float(self.adaptive_upsample_factor)
             
-            wave_arr = _np.linspace(self.wave_arr.min(), self.wave_arr.max(), 
-                    num=((self.wave_arr.max()-self.wave_arr.min())/self.delt_wave + 1) )
-            
+            nwmin = self.wave_arr.min() - 0.5*(self.delt_wave_real - self.delt_wave)
+            nwmax = self.wave_arr.max() + 0.5*(self.delt_wave_real - self.delt_wave)
+            wave_arr = _np.linspace(nwmin, nwmax, num=_np.int(_np.round(((nwmax-nwmin)/self.delt_wave + 1))) )
             self.wave_arr = wave_arr
             self.nWave = len(self.wave_arr)
+            
             
             # Shape nWave, nZ, nY, nX
             self.I_matrix = _np.tile(self.I_wide, (self.nWave,1,1,1))
@@ -835,6 +854,9 @@ class AperModel2D(object):
 
 
     def downsample_to_real_wave(self):
+        print("self.nWave={}".format(self.nWave))
+        print("self.nWave_real={}".format(self.nWave_real))
+        print("self.model_out.shape={}".format(self.model_out.shape))
         self.model_out = _kfuncs.rebin(self.model_out, 
                             self.nWave_real, self.n_pix_y_whole)
         # Reset other parameters to original values:
