@@ -537,7 +537,7 @@ class AperModel2D(object):
     def setup_calcs(self):
         self.setup_model_grid()
             
-        if (self.sigma_floor):
+        if (self.sigma_floor) & (not self.adaptive_upsample_wave):
             extra_floor_fact = 1.    # cover cases  when 1 FWHM can fit in 1 pix
             if self.spec_type == 'wave':
                 self.sigma_floor_value = extra_floor_fact*(self.delt_wave/self.lam0_primary)*c_kms /(2.35)
@@ -557,7 +557,7 @@ class AperModel2D(object):
             elif self.spec_type == 'velocity':
                 self.sigma_upsample_value = extra_floor_fact*self.delt_wave/(2.35)
             if self.sigma_floor:
-                extra_floor_fact = 0.5    # cover cases  when 2 FWHM can fit in 1 pix
+                extra_floor_fact = 0.75    # cover cases  when 1.5 FWHM can fit in 1 pix
                 if self.spec_type == 'wave':
                     self.sigma_floor_value = \
                         extra_floor_fact*((self.delt_wave/self.adaptive_upsample_factor)/self.lam0_primary)*\
@@ -565,7 +565,6 @@ class AperModel2D(object):
                 elif self.spec_type == 'velocity':
                     self.sigma_floor_value = \
                         extra_floor_fact*(self.delt_wave/self.adaptive_upsample_factor)/(2.35)
-                    
                     
         # Initialize PSF:
         # Set PSF convolution:
