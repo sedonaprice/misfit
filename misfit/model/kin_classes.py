@@ -219,8 +219,7 @@ class IntProfileSersic(IntProfileCompBase):
     def int(self, r):
         # Sersic surface intensity profile
         b_n = 2.*self.n - 0.324      # Ciotti+Bertin99
-        r_core = 0. 
-        return self.Ie*_np.exp(-b_n*(_np.power(((r + r_core)/self.re_arcsec),1./_np.float(self.n))-1.))
+        return self.Ie*_np.exp( -b_n * (_np.power( (r/self.re_arcsec), 1./_np.float(self.n) ) -1. ) )
 
 class IntProfileExpZ(IntProfileCompBase):
     def __init__(self, galaxy, **kwargs):

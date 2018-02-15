@@ -853,9 +853,6 @@ class AperModel2D(object):
 
 
     def downsample_to_real_wave(self):
-        print("self.nWave={}".format(self.nWave))
-        print("self.nWave_real={}".format(self.nWave_real))
-        print("self.model_out.shape={}".format(self.model_out.shape))
         self.model_out = _kfuncs.rebin(self.model_out, 
                             self.nWave_real, self.n_pix_y_whole)
         # Reset other parameters to original values:
