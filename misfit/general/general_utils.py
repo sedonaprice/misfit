@@ -48,7 +48,9 @@ def gaus_simple(xx, A, mu, sigma, C=None):
     
     gaus = _np.exp((-(xx-mu)**2)/(2.*sigma**2))/_np.sqrt(2.*_np.pi*sigma)
     
-    gaus = gaus/gaus.max()*A
+    #gaus = gaus/gaus.max()*A
+    
+    gaus *= A
     
     if C is not None:
         gaus += C

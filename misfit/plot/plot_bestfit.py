@@ -10,12 +10,12 @@ from __future__ import print_function
 import numpy as _np
 import os as _os
 import matplotlib
-#matplotlib.use('agg')
-
-try:
-    _os.environ["DISPLAY"] 
-except:
-    matplotlib.use("agg")
+# #matplotlib.use('agg')
+# 
+# try:
+#     _os.environ["DISPLAY"] 
+# except:
+#     matplotlib.use("agg")
 
 from astropy.extern import six as _six
 

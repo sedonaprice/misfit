@@ -11,11 +11,11 @@ import numpy as _np
 import os as _os
 
 import matplotlib
-#matplotlib.use('agg')
-try:
-    _os.environ["DISPLAY"] 
-except:
-    matplotlib.use("agg")
+# #matplotlib.use('agg')
+# try:
+#     _os.environ["DISPLAY"] 
+# except:
+#     matplotlib.use("agg")
     
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec

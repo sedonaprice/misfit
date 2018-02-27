@@ -177,8 +177,19 @@ class IntensityProfileFiducial(IntensityProfile):
         self.intProfile_z = IntProfileExpZ(galaxy)
         
         self.setAttr(**kwargs)
+        self.update_values(galaxy)
         
+#
 
+class IntensityProfileSersicExpScale(IntensityProfile):
+    def __init__(self, galaxy, **kwargs):
+        super(IntensityProfileSersicExpScale, self).__init__(galaxy, **kwargs)
+
+        self.intProfile_r = IntProfileSersic(galaxy)
+        self.intProfile_z = IntProfileExpZScale(galaxy)
+
+        self.setAttr(**kwargs)
+        self.update_values(galaxy)
         
         
 class IntProfileCompBase(object):
@@ -226,9 +237,7 @@ class IntProfileExpZ(IntProfileCompBase):
         super(IntProfileExpZ, self).__init__(galaxy, **kwargs)
 
         self.setAttr(**kwargs)
-        self.get_gal_params(galaxy)
-        
-        self.z0 = self.q0*self.re_arcsec
+        self.update_values(galaxy)
         
     def int(self, z):
         return _np.exp(-_np.abs(z)/self.z0)
@@ -236,7 +245,21 @@ class IntProfileExpZ(IntProfileCompBase):
     def update_values(self, galaxy):
         self.get_gal_params(galaxy)
         self.z0 = self.q0*self.re_arcsec
+
+#
+class IntProfileExpZScale(IntProfileCompBase):
+    def __init__(self, galaxy, **kwargs):
+        super(IntProfileExpZScale, self).__init__(galaxy, **kwargs)
+
+        self.setAttr(**kwargs)
+        self.update_values(galaxy)
         
+    def int(self, z):
+        return _np.exp(-_np.abs(z)/self.z0)
+        
+    def update_values(self, galaxy):
+        self.get_gal_params(galaxy)
+        self.z0 = self.q0*(self.re_arcsec/1.676)
     
 ######################################
 

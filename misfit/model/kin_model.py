@@ -246,8 +246,12 @@ class KinModel2D(object):
         
         # Shape: nSpec, nY, nX
         nWave = len(galaxy.spec2D.wave.copy())
-        self.model_cube = _kfuncs.rebin(self.aperModel.spectra_cube.copy(), 
-                    nWave, n_pix_y_whole, n_pix_x_whole)
+        # if self.debug:
+        #     print("spec cube conv shape={}".format(self.aperModel.spectra_cube_conv.shape))
+        #     print("n_pix_y_whole={}, padY={}, n_pix_x_whole={}, padX={}".format(n_pix_y_whole, 
+        #             self.aperModel.padY, n_pix_x_whole, self.aperModel.padX))
+        self.model_cube = _kfuncs.rebin(self.aperModel.spectra_cube_conv.copy(), 
+                    nWave, n_pix_y_whole+2*self.aperModel.padY, n_pix_x_whole+2*self.aperModel.padX)
                 
         if self.debug:
             # Downsample others too

@@ -10,12 +10,12 @@ import numpy as _np
 from astropy.wcs import WCS as _WCS
 
 import matplotlib
-#matplotlib.use('agg')
-
-try:
-    _os.environ["DISPLAY"] 
-except:
-    matplotlib.use("agg")
+# # matplotlib.use('agg')
+# 
+# try:
+#     _os.environ["DISPLAY"] 
+# except:
+#     matplotlib.use("agg")
     
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm

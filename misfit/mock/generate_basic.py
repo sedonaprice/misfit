@@ -42,6 +42,8 @@ def generate_mock_basis(z=None,
         pad_factor=0.5, 
         do_position_wave_shift=False,
         do_inst_res_conv_effective=False,
+        kinProfile = KinProfileFiducial(), 
+        intensityProfile = IntensityProfileFiducial(Galaxy(n=1.,q0=0.19,re_arcsec=0.)), 
         debug=False):
         
     # Enforce min slit-length
@@ -74,7 +76,7 @@ def generate_mock_basis(z=None,
     
     galaxy.namebase = str(ID)
     
-    intensityProfile = IntensityProfileFiducial(galaxy)
+    
     intensityProfile.update_values(galaxy=galaxy)
     
     ###############
@@ -85,7 +87,6 @@ def generate_mock_basis(z=None,
                         do_inst_res_conv_effective=do_inst_res_conv_effective)
     
     # Uses the fiducial curve: arctan
-    kinProfile = KinProfileFiducial()
     
     ###############
     # Definite initial fitting parameters:

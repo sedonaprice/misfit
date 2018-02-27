@@ -12,11 +12,11 @@ import os as _os
 from astropy.extern import six as _six
 
 import matplotlib
-#matplotlib.use('agg')
-try:
-    _os.environ["DISPLAY"] 
-except:
-    matplotlib.use("agg")
+# #matplotlib.use('agg')
+# try:
+#     _os.environ["DISPLAY"] 
+# except:
+#     matplotlib.use("agg")
     
 matplotlib.rcParams['text.usetex'] = True
 

@@ -645,6 +645,11 @@ class AperModel2D(object):
         # Make num pix in x dir such that delt_x ~ delt_y, 
         #   but delt_x*n_pix_x = slit_wid,  so n_pix_x = slit_wid/delt_x
         self.n_pix_x = _np.int(_np.ceil(self.instrument.slit_width/self.delt_y))
+        # Check for case where slit width = slit length:
+        #    make sure rounding errors don't end up with diff nPix.
+        if self.y_aper == self.instrument.slit_width:
+            if self.n_pix_x != self.n_pix_y:
+                self.n_pix_x = self.n_pix_y
         self.delt_x = self.instrument.slit_width/self.n_pix_x
         
         # Use same number of pixels as in y in the z dir:
