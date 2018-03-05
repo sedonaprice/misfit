@@ -22,18 +22,21 @@ class KinModel2DOptions(object):
     """
     Class to hold model options for KinModel2D
     """
-    def __init__(self, **kwargs):
+    def __init__(self, nSubpixels=2, pad_factor=0.5, 
+            do_position_wave_shift=False, do_inst_res_conv_effective=False, 
+            absvalsigma=False, adaptive_upsample_wave=True, adaptive_upsample_factor=3., 
+            sigma_floor=True, **kwargs):
         
-        self.nSubpixels = 2
-        self.pad_factor = 0.5
-        self.do_position_wave_shift = False
-        self.do_inst_res_conv_effective = False
+        self.nSubpixels = nSubpixels
+        self.pad_factor = pad_factor
+        self.do_position_wave_shift = do_position_wave_shift
+        self.do_inst_res_conv_effective = do_inst_res_conv_effective
         
         # Options for handling v. small dispersion calculations:
-        self.absvalsigma = False
-        self.adaptive_upsample_wave = True
-        self.adaptive_upsample_factor = 3.
-        self.sigma_floor = True
+        self.absvalsigma = absvalsigma
+        self.adaptive_upsample_wave = adaptive_upsample_wave
+        self.adaptive_upsample_factor = adaptive_upsample_factor
+        self.sigma_floor = sigma_floor
         
         self.setAttr(**kwargs)
         
