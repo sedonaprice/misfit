@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 
-# import matplotlib
-# #matplotlib.use('agg')
-# try:
-#     _os.environ["DISPLAY"] 
-# except:
-#     matplotlib.use("agg")
+import matplotlib
+#matplotlib.use('agg')
+try:
+    _os.environ["DISPLAY"] 
+except:
+    matplotlib.use("agg")
 
 # from .galaxy import *
 # from .instrument import *
