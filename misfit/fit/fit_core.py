@@ -262,7 +262,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             prob = None
             state = None
             for k in _six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
-                print( "k, time.time= {:d}, {}".format(k, datetime.datetime.now()) )
+                print( "k={:d}, time: {}".format(k, datetime.datetime.now()) )
                 pos, prob, state = sampler.run_mcmc(pos, 1, lnprob0=prob, rstate0=state)
             #####
             #pos, prob, state = sampler.run_mcmc(initial_pos,fitEmis2D.mcmcOptions.nBurn)
@@ -358,16 +358,17 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             
             # --------------------------------
             # Give output info about this step:
-            print( "time.time()={}".format(datetime.datetime.now()) )
-            print( "ii={:d}, a_frac={:0.4f}".format(ii, _np.mean(sampler.acceptance_fraction)))
+            print( "ii={:d}, a_frac={:0.4f}, time: {}".format(ii, _np.mean(sampler.acceptance_fraction),
+                            datetime.datetime.now()) )
             
             try:
                 #acor_time = sampler.acor
                 acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
-                print( "{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) )
+                #print( "{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) )
                 f_log.write("{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) +"\n")
             except RuntimeError:
-                print(" {}: Chain too short for acor to run".format(ii) )
+                #print(" {}: Chain too short for acor to run".format(ii) )
+                f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
                 acor_time = None
                 
             #
