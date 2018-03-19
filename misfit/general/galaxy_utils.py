@@ -283,6 +283,8 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
                                     spec_mask=galaxy.spec1D.spec_mask)
         galaxy.spec1D.num_mask_edge = 10 #5
         galaxy.spec1D.mask_edges()
+        
+        # Check 
     
         spec2D.spec_mask = mask_spec2D_from_1D(mask2D=spec2D.spec_mask, mask1D=galaxy.spec1D.spec_mask)
     
@@ -345,7 +347,6 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
     wh_line_r = _np.where((spec2D.obswave <= frange[1])&(spec2D.obswave > line_mask_range[1]))[0]
     wh_full = _np.where((spec2D.obswave >= frange[0])&(spec2D.obswave <= frange[1]))[0]
     
-    
     if not no_cont_subtraction:
         ############################################################################
         # Do continuum fit of 1D spectrum
@@ -365,7 +366,7 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
             #_plt.plot(spec2D.obswave[wh_line_mask_range], galaxy.spec1D.flux_err[wh_line_mask_range], 'go-')
             wh_not_missing = _np.where(galaxy.spec1D.flux_err > fill_value)[0]
             _plt.plot(galaxy.spec1D.obswave[wh_not_missing], galaxy.spec1D.flux_err[wh_not_missing], 'go-')
-            _plt.gca().axhline(y=_np.median(galaxy.spec1D.flux_err), ls='-', color='teal')
+            _plt.gca().axhline(y=_np.median(galaxy.spec1D.flux_err[wh_not_missing]), ls='-', color='teal')
             _plt.gca().axvline(x=line_mask_range[0], ls='--', color='black')
             _plt.gca().axvline(x=line_mask_range[1], ls='--', color='black')
         
@@ -373,23 +374,46 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
     
         ######################################
         # Fix slope by fitting to continuum of 1D spectrum:
-        #
-        params_1d = lmfit.Parameters()
-        params_1d.add('a', value=0.)
-        params_1d.add('b', value=0.)
-    
+        
+        # From error variance sum
+        sum_over_col_arr = _np.sqrt((galaxy.spec1D.flux_err*galaxy.spec1D.spec_mask)**2)
+        wh_nosky, wh_sky = wh_skylines_1D(sum_over_col_arr,
+                            median_err=spec2D.median_flux_error, 
+                            cutoff=spec2D.band_cutoff, full=True)
+        
+        spec_mask_tmp = galaxy.spec1D.spec_mask[:]
+        spec_mask_tmp[wh_sky] = 0.
+        
+        
+        # Missing other side: only do const cont. subtraction
+        if (spec_mask_tmp[wh_line_l].max() == 0.) | (spec_mask_tmp[wh_line_r].max() == 0.):
+            params_1d = lmfit.Parameters()
+            params_1d.add('a', value=0., vary=False)
+            params_1d.add('b', value=0.)
+        else:
+            params_1d = lmfit.Parameters()
+            params_1d.add('a', value=0.)
+            params_1d.add('b', value=0.)
+
+        
+        
         # Original ranges:
         xx1d = xx_poly.copy()
         yy1d = _np.append(galaxy.spec1D.flux[wh_line_l], galaxy.spec1D.flux[wh_line_r])
         yy1d_err = _np.append(galaxy.spec1D.flux_err[wh_line_l], galaxy.spec1D.flux_err[wh_line_r])
-        yy1d_mask = _np.append(galaxy.spec1D.spec_mask[wh_line_l], galaxy.spec1D.spec_mask[wh_line_r])
+        yy1d_mask = _np.append(spec_mask_tmp[wh_line_l], spec_mask_tmp[wh_line_r])
     
         result_1d = lmfit.minimize(_utils.weighted_linear_residual, params_1d, 
                         args=(xx1d, yy1d, yy1d_err, yy1d_mask))
         slope = result_1d.params['a'].value
-    
+        
+        
         if galaxy.debug:
             print("% image.cont_sub():  Doing debug!")
+            
+            print("1D continuum fit results:")
+            print(lmfit.fit_report(result_1d.params))
+            
             fig = _plt.figure()
             fig.set_size_inches(12.,4.)
             gs1 = _gridspec.GridSpec(1,2, wspace=0.1)
@@ -556,6 +580,7 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
     
     snr_arr = _np.abs(sum_arr/err_arr)
     high_snr_inds = _np.where(snr_arr >= snr_cut)[0]
+    nrows = len(snr_arr)
     
     # Get continuous
     high_snr_inds_cont = _utils.wh_continuous(high_snr_inds)
@@ -568,6 +593,31 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
             
     low_snr_row_inds = _np.setdiff1d(_six.moves.xrange(len(snr_arr)), high_snr_inds)
     
+    # Mask contigious: to outside if we've hit a low S/N row:
+    if len(low_snr_row_inds) > 0:
+        if (low_snr_row_inds.min() < (nrows)/2.) & (high_snr_inds.min() < low_snr_row_inds.min()):
+            low_snr_row_inds_orig = low_snr_row_inds[:]
+            ii = 0
+            minind = low_snr_row_inds.min()
+            while ii < minind:
+                low_snr_row_inds = _np.append(low_snr_row_inds, ii)
+                ii += 1
+                
+            low_snr_row_inds.sort()
+            # print("low_snr_row_inds={}".format(low_snr_row_inds))
+            
+        if (low_snr_row_inds.max() > (nrows)/2.) &  (high_snr_inds.max() > low_snr_row_inds.max()):
+            low_snr_row_inds_orig = low_snr_row_inds[:]
+            ii = nrows-1
+            maxind = low_snr_row_inds.max()
+            while ii > maxind:
+                low_snr_row_inds = _np.append(low_snr_row_inds, ii)
+                ii -= 1
+            
+            low_snr_row_inds.sort()
+            # print("low_snr_row_inds={}".format(low_snr_row_inds))
+        
+        
     # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
     if debug:
         import matplotlib.pyplot as _plt
@@ -1386,10 +1436,11 @@ def get_m0_lam0_pos_2D(spec2D, galaxy):
     return spec2D
 
 #
-def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, num_MC=500):
+def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, num_MC=500):
+    if filename_plot is not None:
+        plot = True
     
-    
-    # Mask sky and low S/N rows
+    # Mask sky:  don't zero out low S/N rows -- masking later
     spec = spec2D.flux*spec2D.mask_sky#*spec2D.mask_low_snr
     err = spec2D.flux_err*spec2D.mask_sky#*spec2D.mask_low_snr
     
@@ -1400,13 +1451,15 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, num_MC=500):
     y_prof_err = _np.sqrt(_np.sum(err**2, axis=1))
     yy_arr = _np.linspace(spec2D.m_lims[0]*pixscale, spec2D.m_lims[1]*pixscale, 
                     num=(spec2D.m_lims[1]-spec2D.m_lims[0]), endpoint=False)
-                    
-    #wh_not_mask_y = _np.setdiff1d(_six.moves.xrange(len(yy_arr)), spec2D.low_snr_row_inds)
-    wh_not_mask_y = _six.moves.xrange(len(yy_arr))
+    
+    print("spec2D.m_lims={}".format(spec2D.m_lims))
+    
+    wh_not_mask_y = _np.setdiff1d(_six.moves.xrange(len(yy_arr)), spec2D.low_snr_row_inds)
+    #wh_not_mask_y = _six.moves.xrange(len(yy_arr))
     
     if (len(wh_not_mask_y) > 0):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        if filename_plot is not None:
+        if (filename_plot is not None) | (plot is True):
             import matplotlib.pyplot as _plt
             import matplotlib.gridspec as _gridspec
             
@@ -1420,105 +1473,133 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, num_MC=500):
         #############################
         #if galaxy.debug:
         # Setup gaus fit for y:
+        std2FWHM = (2.*_np.sqrt(2.*_np.log(2.)))
         params = lmfit.Parameters()
+        maxsigma = (yy_arr.max()-yy_arr.min())/std2FWHM # FWHM can't be greater than the window
         params.add('mu', value=spec2D.ypos*pixscale, min=yy_arr.min(), max=yy_arr.max())
         params.add('A', value=y_prof.max())  # for pos image
         params.add('sigma', value=n_spatial/4., min=0.)
+        #params.add('C', value=0.)   # constant offset
         
         try:
+            #############################
             result = lmfit.minimize(_utils.gaus_residual_mask, params, 
                             args=(yy_arr, y_prof, y_prof_err, wh_not_mask_y))
-        
+
             #
-            std2FWHM = (2.*_np.sqrt(2.*_np.log(2.)))
+            if result.params['sigma'].value > maxsigma:
+                params = lmfit.Parameters()
+                params.add('mu', value=spec2D.ypos*pixscale, min=yy_arr.min(), max=yy_arr.max())
+                params.add('A', value=y_prof.max())  # for pos image
+                params.add('sigma', value=n_spatial/4., min=0., max=maxsigma)
+                #params.add('C', value=0.)   # constant offset
+                #############################
+                result = lmfit.minimize(_utils.gaus_residual_mask, params, 
+                                args=(yy_arr, y_prof, y_prof_err, wh_not_mask_y))
+                        
+                        
             spec2D.sigma_y_emis_obs = result.params['sigma'].value
             spec2D.sigma_y_emis_int = _np.sqrt(spec2D.sigma_y_emis_obs**2 - (inst.PSF.PSF_FWHM/std2FWHM)**2)
             if (not _np.isfinite(spec2D.sigma_y_emis_int)):
                 spec2D.sigma_y_emis_int = 0.
             spec2D.D50 = spec2D.sigma_y_emis_int * std2FWHM
-        
+
             values_true = _np.array([spec2D.sigma_y_emis_obs, spec2D.sigma_y_emis_int, spec2D.D50])
             # MC: perturb each spec pt by gaussian random number with 1sig=error
             # then do lmfit for each realization:
-            value_matrix = _np.zeros((num_MC, len(result.params)))
-        
+            value_matrix = _np.zeros((num_MC, len(values_true)))
+
             # Structure of value matrix: columns:
             #  z_fit   vel_disp   flux_line0 ... flux_linen-1  cont_coeff0 .. cont_coeffn-1
-        
+
             for i in _six.moves.xrange(num_MC):
                 #print "MC error iter %i/%i" % (i+1,self.num_MC)
                 if ( ((i+1) % 50 == 0)):
                     print("MC error iter {:d}/{:d}".format(i+1,num_MC))
-            
+
                 spec_perturb = y_prof.copy()
                 # Now perturb randomly, using normal distribution
                 rand_vals = _np.random.randn(len(spec_perturb))
                 spec_perturb += y_prof_err*rand_vals
-            
+
                 params_best = lmfit.Parameters()
                 params_best.add('mu', value=spec2D.ypos*pixscale, min=yy_arr.min(), max=yy_arr.max())
                 params_best.add('A', value=y_prof.max())  # for pos image
-                params_best.add('sigma', value=n_spatial/4., min=0.)
-            
+                params_best.add('sigma', value=n_spatial/4., min=0.)#, max=maxsigma)
+
                 #now fit the perturbed spectrum:
                 result_mc = lmfit.minimize(_utils.gaus_residual_mask, params_best, 
                                 args=(yy_arr, spec_perturb, y_prof_err, wh_not_mask_y))
-            
-            
+                
+                if result_mc.params['sigma'].value > maxsigma:
+                    params_best = lmfit.Parameters()
+                    params_best.add('mu', value=spec2D.ypos*pixscale, min=yy_arr.min(), max=yy_arr.max())
+                    params_best.add('A', value=y_prof.max())  # for pos image
+                    params_best.add('sigma', value=n_spatial/4., min=0., max=maxsigma)
+
+                    #now fit the perturbed spectrum:
+                    result_mc = lmfit.minimize(_utils.gaus_residual_mask, params_best, 
+                                    args=(yy_arr, spec_perturb, y_prof_err, wh_not_mask_y))
+
                 # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-                if filename_plot is not None:
+                if (filename_plot is not None) | (plot is True):
                     prof_fit_mc = _utils.gaus_profile(result_mc.params, yy_arr)
                     ax.plot(yy_arr, prof_fit_mc, 
                             ls='-', lw=1, c='red', alpha=0.025)
-                        
+            
                 value_matrix[i,0] = result_mc.params['sigma'].value
                 value_matrix[i,1] = _np.sqrt(value_matrix[i,0]**2 - (inst.PSF.PSF_FWHM/std2FWHM)**2)
                 if (not _np.isfinite(value_matrix[i,1])):
                     value_matrix[i,1] = 0.
                 value_matrix[i,2] = value_matrix[i,2] * std2FWHM
-            
-                                    
+
+                        
             # Get lower, upper 1 sig values for each param
             values_err = _np.zeros((len(values_true),2))
             limits = _np.percentile(value_matrix, [15.865, 84.135], axis=0).T
             values_err[:,0] = values_true[:] - limits[:,0]
             values_err[:,1] = limits[:,1] - values_true[:]
-        
-        
+
+
             spec2D.sigma_y_emis_obs_err = values_err[0,:]
             spec2D.sigma_y_emis_int_err = values_err[1,:]
             spec2D.D50_err = values_err[2,:]
-            
-        
+
+
             # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-            if filename_plot is not None:
-            
+            if (filename_plot is not None) | (plot is True):
+
                 ax.errorbar(yy_arr, y_prof, yerr=y_prof_err, ls='-', color='grey')
-            
+
                 ax.errorbar(yy_arr[wh_not_mask_y], y_prof[wh_not_mask_y], 
                     yerr=y_prof_err[wh_not_mask_y], ls='-', marker='o', color='b')
-            
+
                 prof_fit = _utils.gaus_profile(result.params, yy_arr)
                 ax.plot(yy_arr, prof_fit, ls='-',color='magenta')
-            
-            
+
+
                 ax.axvline(x=result.params['mu'].value,ls='--',color='magenta')
                 ax.axvline(x=yy_arr.min(),ls='--',color='grey')
                 ax.axvline(x=yy_arr.max(),ls='--',color='grey')
-            
-            
+    
+                ax.axhline(y=0.,ls='--',color='grey')
+
+
                 ax.axvline(x=result.params['mu'].value-0.5*2.35*spec2D.sigma_y_emis_obs,ls=':',color='magenta')
                 ax.axvline(x=result.params['mu'].value+0.5*2.35*spec2D.sigma_y_emis_obs,ls=':',color='magenta')
-            
+
                 #print("% fit_emission_y_profile: spec2D.D50={}".format(spec2D.D50))
-            
+
                 ax.axvline(x=result.params['mu'].value-0.5*spec2D.D50,ls=':',color='blue')
                 ax.axvline(x=result.params['mu'].value+0.5*spec2D.D50,ls=':',color='blue')
-            
+
                 ax.axvline(x=result.params['mu'].value-0.5*inst.PSF.PSF_FWHM,ls=':',color='grey')
                 ax.axvline(x=result.params['mu'].value+0.5*inst.PSF.PSF_FWHM,ls=':',color='grey')
-            
-            
+        
+                print("D50/FWHM={}".format(spec2D.D50/inst.PSF.PSF_FWHM))
+                print("sigmaobs/maxsigma={}".format(spec2D.sigma_y_emis_obs/maxsigma))
+                print("D50/maxsigma={}".format(spec2D.D50/maxsigma))
+
                 ax.set_xlabel('Spatial extent [arcsec]')
                 ax.set_ylabel('Collapsed emission-line profile [arbitrary flux]')
                 try: 
@@ -1526,9 +1607,13 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, num_MC=500):
                 except:
                     f_or_m = gal.field
                 ax.set_title(r'{}.{}.{}'.format(f_or_m, spec2D.band, _np.int64(gal.ID)))
-                _plt.savefig(filename_plot, bbox_inches='tight', dpi=300)
-                _plt.close(fig)
-        
+    
+                if (filename_plot is not None):
+                    _plt.savefig(filename_plot, bbox_inches='tight', dpi=300)
+                    _plt.close(fig)
+                else:
+                    _plt.show()
+            
             # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
         except:    
             missing_val = -99.

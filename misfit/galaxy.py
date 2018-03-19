@@ -236,6 +236,8 @@ class ObsSpectrum1D(ObsSpectrum):
         if self.spec_mask is None:
             self.spec_mask = _np.ones(len(self.wave))
             
+        # Mask missing data:
+            
     def trim_spectrum_wavelength(self, galaxy, trim_restwave_range=None, 
                 trim_obswave_range=None, 
                 param_restwave_filename=None, linename=None):
@@ -570,11 +572,11 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
         """
         self = _galaxy_utils.get_m0_lam0_pos_2D(self, galaxy)
         
-    def fit_emission_y_profile(self, galaxy, instrument, filename_plot=None):
+    def fit_emission_y_profile(self, galaxy, instrument, filename_plot=None, plot=False):
         if not self.prepared_for_fitting:
             raise ValueError("Spectrum must have continuum subtracted first, etc")
         
-        self = _galaxy_utils.fit_emission_y_profile(self, galaxy, instrument, filename_plot=filename_plot)
+        self = _galaxy_utils.fit_emission_y_profile(self, galaxy, instrument, filename_plot=filename_plot, plot=plot)
         
         
         
