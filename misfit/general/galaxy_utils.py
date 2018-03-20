@@ -259,6 +259,7 @@ def trim_spectrum_2D_spatial(spec2D, galaxy, instrument):
         gs1.update(left=0.05, right=0.98, wspace=0.1)
         ax2 = _plt.subplot(gs1[0,0])
         
+        # *spec2D.mask_sky
         ax2.imshow(spec2D.flux*spec2D.spec_mask, interpolation="None", origin='lower')
                 
         _plt.show()
@@ -594,7 +595,7 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
     low_snr_row_inds = _np.setdiff1d(_six.moves.xrange(len(snr_arr)), high_snr_inds)
     
     # Mask contigious: to outside if we've hit a low S/N row:
-    if len(low_snr_row_inds) > 0:
+    if (len(low_snr_row_inds) > 0) & (len(high_snr_inds) > 0):
         if (low_snr_row_inds.min() < (nrows)/2.) & (high_snr_inds.min() < low_snr_row_inds.min()):
             low_snr_row_inds_orig = low_snr_row_inds[:]
             ii = 0
@@ -604,7 +605,9 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
                 ii += 1
                 
             low_snr_row_inds.sort()
-            # print("low_snr_row_inds={}".format(low_snr_row_inds))
+            if debug:
+                print("low_snr_row_inds_orig={}".format(low_snr_row_inds_orig))
+                print("low_snr_row_inds={}".format(low_snr_row_inds))
             
         if (low_snr_row_inds.max() > (nrows)/2.) &  (high_snr_inds.max() > low_snr_row_inds.max()):
             low_snr_row_inds_orig = low_snr_row_inds[:]
@@ -615,7 +618,9 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
                 ii -= 1
             
             low_snr_row_inds.sort()
-            # print("low_snr_row_inds={}".format(low_snr_row_inds))
+            if debug:
+                print("low_snr_row_inds_orig={}".format(low_snr_row_inds_orig))
+                print("low_snr_row_inds={}".format(low_snr_row_inds))
         
         
     # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1463,6 +1468,16 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
             import matplotlib.pyplot as _plt
             import matplotlib.gridspec as _gridspec
             
+            
+            # fig2 = _plt.figure()
+            # fig2.set_size_inches(8., 4.)
+            # gs1 = _gridspec.GridSpec(1, 1, height_ratios=[1])
+            # gs1.update(left=0.05, right=0.98, wspace=0.1)
+            # ax2 = _plt.subplot(gs1[0,0])
+            # 
+            # ax2.imshow(spec2D.flux*spec2D.mask_sky, interpolation="None", origin='lower')
+            # 
+            
             fig = _plt.figure()
             fig.set_size_inches(8., 4.)
             
@@ -1482,6 +1497,14 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
         #params.add('C', value=0.)   # constant offset
         
         try:
+            
+            # Check there's even more than PSF FWHM in unmasked rows: otherwise, fits will really not nec. work.
+            if len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 0.8:
+                raise ValueError
+            # elif (len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 1.5) & \
+            #         ((y_prof[wh_not_mask_y]/y_prof_err[wh_not_mask_y]).max() < 3.5):
+            #     raise ValueError
+            
             #############################
             result = lmfit.minimize(_utils.gaus_residual_mask, params, 
                             args=(yy_arr, y_prof, y_prof_err, wh_not_mask_y))
@@ -1496,8 +1519,25 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
                 #############################
                 result = lmfit.minimize(_utils.gaus_residual_mask, params, 
                                 args=(yy_arr, y_prof, y_prof_err, wh_not_mask_y))
-                        
-                        
+            #
+            if (filename_plot is not None) | (plot is True):
+                
+                ax.errorbar(yy_arr, y_prof, yerr=y_prof_err, ls='-', color='grey', zorder=101.)
+
+                ax.errorbar(yy_arr[wh_not_mask_y], y_prof[wh_not_mask_y], 
+                    yerr=y_prof_err[wh_not_mask_y], ls='-', marker='o', color='b', zorder=102.)
+                
+                
+                ax.axvline(x=result.params['mu'].value,ls='--',color='magenta', zorder=100.)
+                ax.axvline(x=yy_arr.min(),ls='--',color='grey')
+                ax.axvline(x=yy_arr.max(),ls='--',color='grey')
+    
+                ax.axhline(y=0.,ls='--',color='grey')
+                
+                prof_fit = _utils.gaus_profile(result.params, yy_arr)
+                ax.plot(yy_arr, prof_fit, ls='-',color='magenta', zorder=100.)
+                ylim = ax.get_ylim()
+            
             spec2D.sigma_y_emis_obs = result.params['sigma'].value
             spec2D.sigma_y_emis_int = _np.sqrt(spec2D.sigma_y_emis_obs**2 - (inst.PSF.PSF_FWHM/std2FWHM)**2)
             if (not _np.isfinite(spec2D.sigma_y_emis_int)):
@@ -1545,7 +1585,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
                 if (filename_plot is not None) | (plot is True):
                     prof_fit_mc = _utils.gaus_profile(result_mc.params, yy_arr)
                     ax.plot(yy_arr, prof_fit_mc, 
-                            ls='-', lw=1, c='red', alpha=0.025)
+                            ls='-', lw=1, c='red', alpha=0.025, zorder=-1.)
             
                 value_matrix[i,0] = result_mc.params['sigma'].value
                 value_matrix[i,1] = _np.sqrt(value_matrix[i,0]**2 - (inst.PSF.PSF_FWHM/std2FWHM)**2)
@@ -1569,22 +1609,6 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
             # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
             if (filename_plot is not None) | (plot is True):
 
-                ax.errorbar(yy_arr, y_prof, yerr=y_prof_err, ls='-', color='grey')
-
-                ax.errorbar(yy_arr[wh_not_mask_y], y_prof[wh_not_mask_y], 
-                    yerr=y_prof_err[wh_not_mask_y], ls='-', marker='o', color='b')
-
-                prof_fit = _utils.gaus_profile(result.params, yy_arr)
-                ax.plot(yy_arr, prof_fit, ls='-',color='magenta')
-
-
-                ax.axvline(x=result.params['mu'].value,ls='--',color='magenta')
-                ax.axvline(x=yy_arr.min(),ls='--',color='grey')
-                ax.axvline(x=yy_arr.max(),ls='--',color='grey')
-    
-                ax.axhline(y=0.,ls='--',color='grey')
-
-
                 ax.axvline(x=result.params['mu'].value-0.5*2.35*spec2D.sigma_y_emis_obs,ls=':',color='magenta')
                 ax.axvline(x=result.params['mu'].value+0.5*2.35*spec2D.sigma_y_emis_obs,ls=':',color='magenta')
 
@@ -1599,7 +1623,9 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
                 print("D50/FWHM={}".format(spec2D.D50/inst.PSF.PSF_FWHM))
                 print("sigmaobs/maxsigma={}".format(spec2D.sigma_y_emis_obs/maxsigma))
                 print("D50/maxsigma={}".format(spec2D.D50/maxsigma))
-
+                print("nfree/FWHM={}".format(len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM))
+                
+                ax.set_ylim(ylim)
                 ax.set_xlabel('Spatial extent [arcsec]')
                 ax.set_ylabel('Collapsed emission-line profile [arbitrary flux]')
                 try: 
