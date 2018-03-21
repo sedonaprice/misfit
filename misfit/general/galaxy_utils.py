@@ -1614,8 +1614,8 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
 
                 #print("% fit_emission_y_profile: spec2D.D50={}".format(spec2D.D50))
 
-                ax.axvline(x=result.params['mu'].value-0.5*spec2D.D50,ls=':',color='blue')
-                ax.axvline(x=result.params['mu'].value+0.5*spec2D.D50,ls=':',color='blue')
+                ax.axvline(x=result.params['mu'].value-0.5*spec2D.D50,ls=':',color='blue', zorder=102.)
+                ax.axvline(x=result.params['mu'].value+0.5*spec2D.D50,ls=':',color='blue', zorder=102.)
 
                 ax.axvline(x=result.params['mu'].value-0.5*inst.PSF.PSF_FWHM,ls=':',color='grey')
                 ax.axvline(x=result.params['mu'].value+0.5*inst.PSF.PSF_FWHM,ls=':',color='grey')

@@ -474,8 +474,10 @@ class FitEmissionLines1D(object):
             return
                 
         # Correct the vel_disp from inst resolution:
-        self.vel_disp_inst_corr = _np.sqrt(self.vel_disp**2 - self.instrument.instrument_resolution**2)
-        
+        if _np.abs(self.vel_disp) > _np.abs(self.instrument.instrument_resolution):
+            self.vel_disp_inst_corr = _np.sqrt(self.vel_disp**2 - self.instrument.instrument_resolution**2)
+        else:
+            self.vel_disp_inst_corr = 0.
         
         
         if not noErrors:
@@ -489,7 +491,7 @@ class FitEmissionLines1D(object):
             # Correct all in value matrix
             vel_disp_mc = value_matrix[:,1]
             vel_disp_mc_inst_corr = _np.sqrt(vel_disp_mc**2 - self.galaxy.spec1D.instrument_resolution**2)
-            
+                
             # Make non-finite cases: these are where inst res > vel disp
             vel_disp_mc_inst_corr[~_np.isfinite(vel_disp_mc_inst_corr)] = 0.
             
