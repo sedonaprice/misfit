@@ -259,8 +259,8 @@ def trim_spectrum_2D_spatial(spec2D, galaxy, instrument):
         gs1.update(left=0.05, right=0.98, wspace=0.1)
         ax2 = _plt.subplot(gs1[0,0])
         
-        # *spec2D.mask_sky
-        ax2.imshow(spec2D.flux*spec2D.spec_mask, interpolation="None", origin='lower')
+        # 
+        ax2.imshow(spec2D.flux*spec2D.spec_mask*spec2D.mask_sky, interpolation="None", origin='lower')
                 
         _plt.show()
         
@@ -1591,7 +1591,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
                 value_matrix[i,1] = _np.sqrt(value_matrix[i,0]**2 - (inst.PSF.PSF_FWHM/std2FWHM)**2)
                 if (not _np.isfinite(value_matrix[i,1])):
                     value_matrix[i,1] = 0.
-                value_matrix[i,2] = value_matrix[i,2] * std2FWHM
+                value_matrix[i,2] = value_matrix[i,1] * std2FWHM
 
                         
             # Get lower, upper 1 sig values for each param
