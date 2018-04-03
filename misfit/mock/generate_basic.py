@@ -70,7 +70,7 @@ def generate_mock_basis(z=None,
     spec2D.shape = [ _np.int(_np.ceil(instrument.slit_length/instrument.pixscale)), nwave]
     if spec_type == 'wave':
         spec2D.initialize_lineset()
-    spec2D.m0 = _np.ceil(instrument.slit_length/instrument.pixscale)/2.
+    spec2D.m0 = _np.ceil(instrument.slit_length/instrument.pixscale)/2. - 0.5
     spec2D.ypos = spec2D.m0
     galaxy.set_spectrum_2D(spec2D)
     
