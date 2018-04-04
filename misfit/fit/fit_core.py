@@ -565,6 +565,7 @@ def make_pruned_fitEmis2D_class(fitEmis2D):
 def init_walker_pos(fitEmis2D, ndim=None, nwalkers=200):
     # Initialize walker positions randomly within rough bounds: need theta_bounds to be set
     #   even if it's infinite -- to define *something* to start.
+    
     param_range, param_lower = _utils.range_arrs(fitEmis2D)
     
     pos = [_np.random.random_sample(ndim)*param_range + param_lower for i in _six.moves.xrange(nwalkers)]
