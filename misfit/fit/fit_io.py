@@ -47,7 +47,8 @@ def make_emcee_sampler_dict(sampler,fitEmis2D=None, nBurn=0):
            'nIter': sampler.iterations, 
            'nParam': sampler.dim, 
            'nCPU': sampler.threads,
-           'nWalkers': len(sampler.chain) }
+           'nWalkers': len(sampler.chain), 
+           'acceptance_fraction': sampler.acceptance_fraction }
 
     return df
     

@@ -1501,9 +1501,6 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
             # Check there's even more than PSF FWHM in unmasked rows: otherwise, fits will really not nec. work.
             if len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 0.8:
                 raise ValueError
-            # elif (len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 1.5) & \
-            #         ((y_prof[wh_not_mask_y]/y_prof_err[wh_not_mask_y]).max() < 3.5):
-            #     raise ValueError
             
             #############################
             result = lmfit.minimize(_utils.gaus_residual_mask, params, 
