@@ -387,13 +387,18 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
         
         
         # Missing other side: only do const cont. subtraction
-        if (spec_mask_tmp[wh_line_l].max() == 0.) | (spec_mask_tmp[wh_line_r].max() == 0.):
-            params_1d = lmfit.Parameters()
-            params_1d.add('a', value=0., vary=False)
-            params_1d.add('b', value=0.)
+        if (len(wh_line_l) > 0.) & (len(wh_line_r) > 0.):
+            if (spec_mask_tmp[wh_line_l].max() > 0.) & (spec_mask_tmp[wh_line_r].max() > 0.):
+                params_1d = lmfit.Parameters()
+                params_1d.add('a', value=0.)
+                params_1d.add('b', value=0.)
+            else:
+                params_1d = lmfit.Parameters()
+                params_1d.add('a', value=0., vary=False)
+                params_1d.add('b', value=0.)
         else:
             params_1d = lmfit.Parameters()
-            params_1d.add('a', value=0.)
+            params_1d.add('a', value=0., vary=False)
             params_1d.add('b', value=0.)
 
         
