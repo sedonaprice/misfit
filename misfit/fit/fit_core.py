@@ -363,7 +363,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             
             try:
                 #acor_time = sampler.acor
-                acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
+                acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in _six.moves.xrange(sampler.dim)]
                 #print( "{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) )
                 f_log.write("{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) +"\n")
             except RuntimeError:
