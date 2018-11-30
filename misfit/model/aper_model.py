@@ -290,9 +290,14 @@ class AperModel1DRot(AperModel1DBase):
         self.kinProfile.update_theta(theta_kinprof)
         
         if self.theta[0] is not None:
-            V_aper = self.kinProfile.vel(self.disp_aper_radius_arcsec, 0.)
-            theta_kinprof = _np.array([self.theta[1], self.theta[2], V_aper/self.theta[0]])
-            self.kinProfile.update_theta(theta_kinprof)
+            if self.theta[0] != 0.:
+                V_aper = self.kinProfile.vel(self.disp_aper_radius_arcsec, 0.)
+                theta_kinprof = _np.array([self.theta[1], self.theta[2], V_aper/self.theta[0]])
+                self.kinProfile.update_theta(theta_kinprof)
+            else:
+                # v/sig = 0 == eg velocity = 0.
+                theta_kinprof = _np.array([0., self.theta[2], self.theta[1]])
+                self.kinProfile.update_theta(theta_kinprof)
         
         
     def setup_model_grid(self):
