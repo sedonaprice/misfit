@@ -138,16 +138,16 @@ def add_sigma_collapse_z(I_wide, V_wide, sigma_wide,
         if _np.abs(sigma_wide).max() > 0.:
             scale = 1/(sigma_wide*_np.sqrt(2.*_np.pi))
             gaus = scale*_np.exp(-(V_matrix-wave_ref_matrix)**2/(2.*sigma_wide**2))
-        
+    
             # # When adding gaussian, you are preserving total I(x,y,z) over all V.
             # # So normalize the gaus distribution
             I_conv = I_matrix*gaus
-        
+    
             I_Vxy_oneline = _np.sum(I_conv, axis=1)*delt_z
         else:
             I_Vxy_oneline = I_simple_collapse(I_wide, V_wide, wave_arr, nWave, 
                             nZ, nY, nX, delt_z, delt_wave, lam0)
-                        
+                    
         I_Vxy += I_Vxy_oneline
         
     return I_Vxy
