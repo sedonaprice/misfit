@@ -226,35 +226,6 @@ def convolve_rot_gal(galaxy=None, instrument=None, instrument_img=None,
     conv_stamp = instrument.PSF.generate_conv_stamp(xoffarc, yoffarc, 
                 PSF_FWHM=conv_sigma*(2.*_np.sqrt(2.*_np.log(2.))))
     
-    # if PSF_type.strip().lower() == 'gaussian':
-    #     # function: f = A*exp(-((x-x0)^2/2sig^2 + (y-y0)^2/2sig^2))
-    #     for i in _six.moves.xrange(len(x)):        # i/x is columns (2nd index)
-    #         for j in _six.moves.xrange(len(y)):    # j/y is rows (1st index)
-    #             conv_stamp[j,i] = _np.exp(-((x[i]-cent[1])**2/(2.*conv_sigma_pix**2) + 
-    #                                 (y[j]-cent[0])**2/(2.*conv_sigma_pix**2)))
-    # elif PSF_type.strip().lower() == 'moffat':
-    #     
-    #     fwhm_conv = (2.*_np.sqrt(2.*_np.log(2.))) * conv_sigma
-    #     
-    #     beta = PSF.PSF_beta
-    #     alpha = fwhm_conv/(2. * _np.sqrt(_np.power(2., 1./beta), -1))
-    # 
-    #     x_off = x-cent[1]
-    #     y_off = y-cent[0]
-    #     
-    #     xarr_flat = _np.tile(x_off, (len(y_off),1))
-    #     yarr_flat = _np.tile(_np.array([y_off]).T, (1,len(x_off)))
-    #     
-    #     
-    #     
-    #     # Convert to arcsec
-    #     x_off_arc = xarr_flat * instrument_img.pixscale
-    #     y_off_arc = yarr_flat * instrument_img.pixscale
-    # 
-    #     conv_stamp = _np.power((1.+(x_off_arc **2 + y_off_arc**2)/(alpha**2)), -beta)
-    #     
-    # else:
-    #     raise ValueError("PSF type not supported: {}".format(PSF_type))
     
     pstamp_rot = fftconvolve(pstamp_rot_orig, conv_stamp, mode='same')
 

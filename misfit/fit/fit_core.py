@@ -1,6 +1,9 @@
 # Copyright 2016, 2017 Sedona Price <sedona.price@gmail.com>.
 # Licensed under a 3-clause BSD style license - see LICENSE
 
+# Some handling of MCMC / posterior distribution analysis inspired by speclens: 
+#    https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
+
 from __future__ import print_function
 
 import numpy as _np
@@ -352,7 +355,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             pos_cur = pos.copy()    # copy just in case things are set strangely
             
             # --------------------------------
-            # 1: only do one step at a time.
+            # Only do one step at a time.
             pos, prob, state = sampler.run_mcmc(pos_cur, 1, lnprob0=prob, rstate0=state)
             # --------------------------------
             
@@ -362,41 +365,38 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
                             datetime.datetime.now()) )
             
             try:
-                #acor_time = sampler.acor
                 acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in _six.moves.xrange(sampler.dim)]
-                #print( "{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) )
                 f_log.write("{:d}: acor_time = {}".format(ii,  _np.array(acor_time) ) +"\n")
             except RuntimeError:
-                #print(" {}: Chain too short for acor to run".format(ii) )
                 f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
                 acor_time = None
                 
-            #
             # --------------------------------
-            # Case: test for convergence and truncate early:
-            if( (fitEmis2D.mcmcOptions.minAF is not None) & \
+            # Test for convergence and truncate early if 
+            # it's already met the number of autocorr times:
+            if ( (fitEmis2D.mcmcOptions.minAF is not None) & \
                     (fitEmis2D.mcmcOptions.maxAF is not None) & \
-                    (fitEmis2D.mcmcOptions.nEff is not None)):
-                if(fitEmis2D.mcmcOptions.minAF < _np.mean(sampler.acceptance_fraction) < fitEmis2D.mcmcOptions.maxAF):
-                    if acor_time is not None:
-                        if (not fitEmis2D.mcmcOptions.runAllSteps) & \
-                            (ii > _np.max(acor_time) * fitEmis2D.mcmcOptions.nEff):
-                            if ii == acor_force_min:
-                                f_log.write(" Enforced min step limit: {}.".format(ii+1))
-                            if ii >= acor_force_min:
-                                f_log.write(" Breaking chain at step {}.".format(ii+1))
-                                break
+                    (fitEmis2D.mcmcOptions.nEff is not None) & \
+                    (acor_time is not None)):
+                if (fitEmis2D.mcmcOptions.minAF < _np.mean(sampler.acceptance_fraction) < fitEmis2D.mcmcOptions.maxAF):
+                    if (not fitEmis2D.mcmcOptions.runAllSteps) & \
+                        (ii > _np.max(acor_time) * fitEmis2D.mcmcOptions.nEff):
+                        if ii == acor_force_min:
+                            f_log.write(" Enforced min step limit: {}.".format(ii+1))
+                        if ii >= acor_force_min:
+                            f_log.write(" Finishing calculations early at step {}.".format(ii+1))
+                            break
         
             
         # --------------------------------
         # Check if it converged before the max number of steps
         finishedSteps= ii+1
-        if(finishedSteps == fitEmis2D.mcmcOptions.nSteps) & \
+        if (finishedSteps == fitEmis2D.mcmcOptions.nSteps) & \
             ( (fitEmis2D.mcmcOptions.minAF is not None) & \
                 (fitEmis2D.mcmcOptions.maxAF is not None) & \
                 (fitEmis2D.mcmcOptions.nEff is not None) ) & \
                (not fitEmis2D.mcmcOptions.runAllSteps):
-            f_log.write("Warning: chain did not converge after nSteps."+'\n')
+            f_log.write("Caution: no convergence within nSteps."+'\n')
             
             
         # --------------------------------
@@ -407,7 +407,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
         try:
             acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in _six.moves.xrange(sampler.dim)]
         except:
-            acor_time = "Undefined, chain did not converge"
+            acor_time = "Undefined, chain not converged"
             
         #######################################################################################
         # ***********
@@ -535,27 +535,6 @@ def make_pruned_fitEmis2D_class(fitEmis2D):
     for key in keys_kinmodel:
         del fitEmis2D_fit.kinModel.__dict__[key]
     
-    #
-    # ###################
-    # # Check what's left:
-    # print( "------------------------------------------------------------------")
-    # print( "------------------------------------------------------------------")
-    # print( "------------------------------------------------------------------")
-    # for key in fitEmis2D_fit.__dict__.keys():
-    #     try:
-    #         for key2 in fitEmis2D_fit.__dict__[key].__dict__.keys():
-    #             try:
-    #                 for key3 in fitEmis2D_fit.__dict__[key].__dict__[key2].__dict__.keys():
-    #                     try:
-    #                         for key4 in fitEmis2D_fit.__dict__[key].__dict__[key2].__dict__[key3].keys():
-    #                             print( "fitEmis2D_fit."+key+'.'+key2+'.'+key3+'.'+key4)
-    #                     except:
-    #                         print( "fitEmis2D_fit."+key+'.'+key2+'.'+key3)
-    #             except:
-    #                 print( "fitEmis2D_fit."+key+'.'+key2)
-    #     except:
-    #         print( "fitEmis2D_fit."+key)
-    # ###################
     
     return fitEmis2D_fit
     
@@ -694,9 +673,8 @@ def get_param_posterior_bestfits(fitEmis2D):
             # if off by > 15%: seed with q50 instead:
             mcmc_peak_hist[i] = q50
     
-    ## Use max prob as guess to get peakKDE value, 
-    ##      the peak of the marginalized posterior distributions (following M. George's speclens)
-    mcmc_peak_KDE = _utils.getPeakKDE(fitEmis2D.sampler_dict['flatchain'], mcmc_peak_hist)
+    ## Use max prob as guess to get peak value of gaussian KDE, to find 'best-fit' of posterior: 
+    mcmc_peak_KDE = _utils.find_peak_gaussian_KDE(fitEmis2D.sampler_dict['flatchain'], mcmc_peak_hist)
     
     # Set best-fit values
     fitEmis2D.mcmc_results.bestfit_theta = mcmc_peak_KDE

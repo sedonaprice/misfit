@@ -69,7 +69,6 @@ def plot_trace(sampler_dict, fitEmis2D, fileout=None):
             axes[k].plot(sampler_dict['chain'][trace_inds[j],:,k].T, '-', 
                     color=trace_colors[j], lw=lwTrace, alpha=alphaTrace)
             
-        #axes[k].plot(sampler_dict['chain'][:,:,k].T, '-', color='black', alpha=alpha)
         
         axes[k].set_ylabel(names[k])
         

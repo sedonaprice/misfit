@@ -392,8 +392,7 @@ class FitEmissionLines1D(object):
             self.cont_coeff_err =   _np.zeros((self.cont_order+1,2))
             
             
-        ########################################################
-        ##### 
+        ############################################################# 
         #  Finish plot 
         if not noPlot:
             

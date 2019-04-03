@@ -4,6 +4,9 @@
 # Copyright 2016, 2017 Sedona Price <sedona.price@gmail.com>.
 # Licensed under a 3-clause BSD style license - see LICENSE
 
+# Some handling of MCMC / posterior distribution analysis inspired by speclens: 
+#    https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
+
 # Hidden modules prepended with '_'
 from __future__ import print_function
 
@@ -195,43 +198,46 @@ def range_arrs(fitEmis2D):
     return param_range, param_lower 
     
     
-    
-#
-def getPeakKDE(flatchain, guess):
-    # Taken from speclens: 
-    #    https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
-    # and modified as necessary
+
+def gaussian_KDE_kernel_func(flatchain):
     """
-    Return chain pars that give peak of posterior PDF, using KDE.
-    From speclens: https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
-    By Matt George
+    Return negative of gaussian KDE estimated from parameter chain -- to find distribution peak 
+        using scipy.optimize.fmin
     """
-    if(len(flatchain.shape)==1):
-        nPars=1
-        kern=_gaussian_kde(flatchain)
-        peakKDE=_fmin(lambda x: -kern(x), guess,disp=False)
-        return peakKDE
-    else:
-        nPars=flatchain.shape[1]
-        peakKDE=_np.zeros(nPars)
-        for ii in _six.moves.xrange(nPars):
-            kern=_gaussian_kde(flatchain[:,ii])
-            peakKDE[ii]=_fmin(lambda x: -kern(x), guess[ii],disp=False)
-        return peakKDE
+    return -_gaussian_kde(flatchain)
+
+def find_peak_gaussian_KDE(flatchain, initval):
+    """
+    Return chain parameters that give peak of the posterior PDF, using KDE.
+    """
+    try:
+        nparams = flatchain.shape[1]
+    except:
+        nparams = 1
         
-#
-def getPeakKDEmultiD(flatchain, inds, guess):
+    if nparams > 1:
+        peakvals = _np.zeros(nparams)
+        for i in _six.moves.xrange(nparams):
+            neg_kernel = gaussian_KDE_kernel_func(flatchain[:,i])
+            peakvals[i] = _fmin(neg_kernel, initval[i], disp=False)
+        return peakvals
+    else:
+        neg_kernel = gaussian_KDE_kernel_func(flatchain)
+        peakval = _fmin(neg_kernel, initval, disp=False)
+        
+        return peakval
+        
+
+def find_peak_gaussian_KDE_multiD(flatchain, linked_inds, initval):
     """
-    Return chain pars that give peak of posterior PDF *FOR LINKED PARAMETERS, using KDE.
-    From speclens: https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
-    By Matt George
+    Return chain parameters that give peak of the posterior PDF *FOR LINKED PARAMETERS, using KDE.
     """
-    nPars = len(inds)
     
-    kern = _gaussian_kde(flatchain[:,inds].T)
-    peakKDE = _fmin(lambda x: -kern(x), guess, disp=False)
+    nparams = len(linked_inds)
+    neg_kern = gaussian_KDE_kernel_func(flatchain[:,inds].T)
+    peakvals = _fmin(neg_kernel, initval, disp=False)
     
-    return peakKDE
+    return peakvals
     
         
         
@@ -241,41 +247,6 @@ def get_bestfit_values_linked(fitEmis2D, err_theta, mcmc_lims_zip,
     #
     flatchain = fitEmis2D.sampler_dict['flatchain'].copy()
     
-    # samples = fitEmis2D.sampler_dict['flatchain'].copy()
-    # if len(theta_linked_posteriors) == 2:
-    #     x = samples[:,theta_linked_posteriors[0]]
-    #     y = samples[:,theta_linked_posteriors[1]]
-    #     
-    #     extent = [[x.min(), x.max()], [y.min(), y.max()]]
-    #     X = _np.linspace(extent[0][0], extent[0][1], bins+1)
-    #     Y = _np.linspace(extent[1][0], extent[1][1], bins+1)
-    #     
-    #     H, X, Y = _np.histogram2d(x.flatten(), y.flatten(), bins=(X, Y))
-    #     
-    #     #############################
-    #     # use H peak to get "best fit values"
-    #     wh_H_peak = _np.column_stack(_np.where(H == H.max()))[0]
-    #     
-    #     col1_best = _np.average([X[wh_H_peak[0]],X[wh_H_peak[0]+1]])
-    #     col2_best = _np.average([Y[wh_H_peak[1]], Y[wh_H_peak[1]+1]])
-    #     
-    #     # Reset output values:
-    #     bestfit_theta = fitEmis2D.mcmc_results.bestfit_theta.copy()
-    #     
-    #     bestfit_theta[theta_linked_posteriors[0]] = col1_best
-    #     bestfit_theta[theta_linked_posteriors[1]] = col2_best
-    #     
-    #     err_theta[theta_linked_posteriors[0]] = _np.array([col1_best-mcmc_lims_zip[theta_linked_posteriors[0]][0], 
-    #                             mcmc_lims_zip[theta_linked_posteriors[0]][1] - col1_best])
-    #     #
-    #     err_theta[theta_linked_posteriors[1]] = _np.array([col2_best-mcmc_lims_zip[theta_linked_posteriors[1]][0], 
-    #                             mcmc_lims_zip[theta_linked_posteriors[1]][1] - col2_best])
-    #     
-    #     
-    # elif len(theta_linked_posteriors) > 2:
-    #     raise ValueError("Linked posteriors for more than 2 parameters not implemented!")
-    # elif len(theta_linked_posteriors) == 1:
-    #     raise ValueError("Must specify 2+ parameters for linked posteriors")
     
     try:
         if theta_linked_posteriors.strip().lower() == 'all':
@@ -286,7 +257,7 @@ def get_bestfit_values_linked(fitEmis2D, err_theta, mcmc_lims_zip,
     # Reset output values:
     bestfit_theta = fitEmis2D.mcmc_results.bestfit_theta.copy()
     
-    bestfit_theta_linked = getPeakKDEmultiD(flatchain, theta_linked_posteriors, 
+    bestfit_theta_linked = find_peak_gaussian_KDE_multiD(flatchain, theta_linked_posteriors, 
             fitEmis2D.mcmc_results.bestfit_theta[theta_linked_posteriors])
             
     for k in _six.moves.xrange(len(theta_linked_posteriors)):

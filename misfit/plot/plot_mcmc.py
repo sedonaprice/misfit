@@ -76,14 +76,6 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
         ax.set_title(title)
     
     
-    # 
-    # # Figure out which axis is which:
-    # for i in _six.moves.xrange(len(axes)):
-    #     axes[i].annotate('i='+str(i), (0.9,0.9), 
-    #             xycoords='axes fraction', fontsize=12,
-    #             color='red')
-    
-    
     # If linked results:
     if (fitEmis2D.theta_linked_posteriors is not None) & (showLinked):
         for j in _six.moves.xrange(len(fitEmis2D.theta_linked_posteriors)):
