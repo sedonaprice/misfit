@@ -263,30 +263,6 @@ class IntProfileExpZScale(IntProfileCompBase):
     
 ######################################
 
-## If you want to tuck thetaPrior under theta settings....
-#
-# class ThetaPriorFlatAlt(object):
-#     def __init__(self **kwargs):
-#         
-#         self.name = 'ThetaPriorFlat'
-#         
-#         
-#     def log_prior(self, thetaSettings, theta_fitting=None):
-#         i_free = 0
-#         
-#         statements = []
-#         for i in _six.moves.xrange(len(thetaSettings.theta)):
-#             if thetaSettings.theta_vary[i]:
-#                 statements.append(_kfuncs._between(thetaSettings.theta_bounds[i], theta_fitting[i_free]))
-#                 i_free += 1
-#             
-#         if _np.array(statements).all():
-#             prior = 0.
-#             
-#             return prior
-#         else:
-#             return -_np.inf
-
 
 class ThetaPriorFlat(object):
     def __init__(self,theta=None, theta_vary=None, theta_bounds=None, **kwargs):
@@ -314,9 +290,6 @@ class ThetaPriorFlat(object):
         else:
             return -_np.inf
             
-            
-            
-#
 
 class Theta2DSettings(object):
     """

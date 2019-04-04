@@ -1,8 +1,9 @@
-# Copyright 2016, 2017 Sedona Price <sedona.price@gmail.com>.
+# Copyright 2016-2019 Sedona Price <sedona.price@gmail.com>.
 # Licensed under a 3-clause BSD style license - see LICENSE
 
 # Some handling of MCMC / posterior distribution analysis inspired by speclens: 
 #    https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py
+#    Many thanks to Matt George for guidance/help in learning to implement MCMC
 
 from __future__ import print_function
 
@@ -142,24 +143,12 @@ def lnlike(theta_fitting, fitEmis2D):
     # Make model:
     fitEmis2D.update_model(theta_fitting=theta_fitting)
     
-    # ### OLD!
-    # #
-    # # Calculate chisq:
-    # chisq = fitEmis2D.kinModel.model_chisq()
-    # llike = -0.5*chisq
-    # 
-    # Algorithm maxemizes likelihood
-    # ln P =  -0.5*chisq
-    #   the log likelihood for a chisq distribution
-    
     llike = fitEmis2D.kinModel.model_llike()
     
     return llike
    
 def lnprob(theta_fitting, fitEmis2D):
     # Prior: defined in fitEmis2D. 
-    
-    # # Make independent copy for this calc.
     
     ln_prior = fitEmis2D.thetaPrior.log_prior(theta_fitting=theta_fitting)
     
@@ -170,8 +159,7 @@ def lnprob(theta_fitting, fitEmis2D):
     ln_prob = ln_prior + ln_like
     
     if not _np.isfinite(ln_prob):
-        # Make sure the non-finite ln_prob is -Inf, 
-        #    as this can be escaped in the next step
+        # Make sure the non-finite ln_prob is -Inf, for emcee handling
         ln_prob = -_np.inf
 
     return ln_prob
@@ -372,20 +360,22 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
                 acor_time = None
                 
             # --------------------------------
-            # Test for convergence and truncate early if 
-            # it's already met the number of autocorr times:
+            # Case: test for convergence and truncate early:
+            # Criteria checked: whether acceptance fraction within (minAF, maxAF), 
+            #                   and whether total number of steps > nEff * average autocorrelation time:
+            #                   to make sure the paramter space is well explored.
             if ( (fitEmis2D.mcmcOptions.minAF is not None) & \
                     (fitEmis2D.mcmcOptions.maxAF is not None) & \
                     (fitEmis2D.mcmcOptions.nEff is not None) & \
                     (acor_time is not None)):
-                if (fitEmis2D.mcmcOptions.minAF < _np.mean(sampler.acceptance_fraction) < fitEmis2D.mcmcOptions.maxAF):
-                    if (not fitEmis2D.mcmcOptions.runAllSteps) & \
-                        (ii > _np.max(acor_time) * fitEmis2D.mcmcOptions.nEff):
-                        if ii == acor_force_min:
-                            f_log.write(" Enforced min step limit: {}.".format(ii+1))
-                        if ii >= acor_force_min:
-                            f_log.write(" Finishing calculations early at step {}.".format(ii+1))
-                            break
+                if ((fitEmis2D.mcmcOptions.minAF < _np.mean(sampler.acceptance_fraction) < fitEmis2D.mcmcOptions.maxAF) & \
+                    (not fitEmis2D.mcmcOptions.runAllSteps) & \
+                    (ii > _np.max(acor_time) * fitEmis2D.mcmcOptions.nEff) ):
+                    if ii == acor_force_min:
+                        f_log.write(" Enforced min step limit: {}.".format(ii+1))
+                    if ii >= acor_force_min:
+                        f_log.write(" Finishing calculations early at step {}.".format(ii+1))
+                        break
         
             
         # --------------------------------
