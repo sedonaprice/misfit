@@ -199,12 +199,6 @@ def range_arrs(fitEmis2D):
     
     
 
-def gaussian_KDE_kernel_func(flatchain):
-    """
-    Return negative of gaussian KDE estimated from parameter chain -- to find distribution peak 
-        using scipy.optimize.fmin
-    """
-    return -_gaussian_kde(flatchain)
 
 def find_peak_gaussian_KDE(flatchain, initval):
     """
@@ -218,8 +212,8 @@ def find_peak_gaussian_KDE(flatchain, initval):
     if nparams > 1:
         peakvals = _np.zeros(nparams)
         for i in _six.moves.xrange(nparams):
-            neg_kernel = gaussian_KDE_kernel_func(flatchain[:,i])
-            peakvals[i] = _fmin(neg_kernel, initval[i], disp=False)
+            kern = _gaussian_kde(flatchain[:,i])
+            peakvals[i] = _fmin(lambda x: -kern(x), initval[i], disp=False)
         return peakvals
     else:
         neg_kernel = gaussian_KDE_kernel_func(flatchain)
@@ -234,8 +228,8 @@ def find_peak_gaussian_KDE_multiD(flatchain, linked_inds, initval):
     """
     
     nparams = len(linked_inds)
-    neg_kern = gaussian_KDE_kernel_func(flatchain[:,inds].T)
-    peakvals = _fmin(neg_kernel, initval, disp=False)
+    kern = _gaussian_kde(flatchain[:,inds].T)
+    peakvals = _fmin(lambda x: -kern(x), initval, disp=False)
     
     return peakvals
     

@@ -185,21 +185,8 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
     
     # --------------------------------
     if fitEmis2D_fit is None:
-        # # # Make copy of fitEmis2D with only necessary attribs for calcs
-        # fitEmis2D_fit_vold = make_pruned_fitEmis2D_class(fitEmis2D)
-        # fitEmis2D_fit = prune_fitEmis2D_class(fitEmis2D)
-        
         
         fitEmis2D_fit = make_pruned_fitEmis2D_class(fitEmis2D)
-        #_pickle.dump(fitEmis2D_fit, open("/home/sedona/fitEmis2D_make_prune.pickle", "wb") )
-    
-    # _pickle.dump(fitEmis2D_fit_vold, open("/home/sedona/fitEmis2D_make_prune.pickle", "wb") )
-    # _pickle.dump(fitEmis2D_fit, open("/home/sedona/fitEmis2D_prune.pickle", "wb") )
-    # 
-    # 
-    # # _json.dump(fitEmis2D_fit, open("/home/sedona/fitEmis2D_prune.json", "wb") )
-    # # _json.dump(fitEmis2D_fit_vold, open("/home/sedona/fitEmis2D_make_prune.json", "wb") )
-    # 
     
     
     
@@ -216,11 +203,6 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
     
     # --------------------------------
     # Initialize emcee sampler
-    # pool = MPIPool(loadbalance=True)
-    # if not pool.is_master():
-    #     pool.wait()
-    #     sys.exit(0)
-    
         
     sampler = emcee.EnsembleSampler(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param, 
                                     lnprob, 
@@ -255,8 +237,6 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             for k in _six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
                 print( "k={:d}, time: {}".format(k, datetime.datetime.now()) )
                 pos, prob, state = sampler.run_mcmc(pos, 1, lnprob0=prob, rstate0=state)
-            #####
-            #pos, prob, state = sampler.run_mcmc(initial_pos,fitEmis2D.mcmcOptions.nBurn)
             
             
             end = time.time()
