@@ -578,16 +578,16 @@ def add_v_re_22(fitEmis2D):
     fitEmis2D.kinProfile.update_theta(theta_chain)
     
     # Sample at R_E, and at z=0.
-    V_re_arr = _np.array([fitEmis2D.kinProfile.vel(fitEmis2D.galaxy.re_arcsec, 0.)])
-    V_22_arr = _np.array([fitEmis2D.kinProfile.vel(2.2/1.676 * fitEmis2D.galaxy.re_arcsec, 0.)])
+    V_re_arr = _np.array([fitEmis2D.kinProfile.vel(fitEmis2D.galaxy.re_mass_arcsec, 0.)])
+    V_22_arr = _np.array([fitEmis2D.kinProfile.vel(2.2/1.676 * fitEmis2D.galaxy.re_mass_arcsec, 0.)])
     
     flatchain = _np.append(fitEmis2D.sampler_dict['flatchain'].T,V_re_arr, axis=0).T
     flatchain = _np.append(flatchain.T,V_22_arr, axis=0).T
     
     
     # Also add stuff about sigma: # Sample at R_E, and at z=0.
-    sigma_re_arr = _np.array([fitEmis2D.kinProfile.sigma(fitEmis2D.galaxy.re_arcsec, 0.)])
-    sigma_22_arr = _np.array([fitEmis2D.kinProfile.sigma(2.2/1.676 * fitEmis2D.galaxy.re_arcsec, 0.)])
+    sigma_re_arr = _np.array([fitEmis2D.kinProfile.sigma(fitEmis2D.galaxy.re_mass_arcsec, 0.)])
+    sigma_22_arr = _np.array([fitEmis2D.kinProfile.sigma(2.2/1.676 * fitEmis2D.galaxy.re_mass_arcsec, 0.)])
     
     flatchain = _np.append(flatchain.T, sigma_re_arr, axis=0).T
     flatchain = _np.append(flatchain.T, sigma_22_arr, axis=0).T

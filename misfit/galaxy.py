@@ -35,6 +35,9 @@ class GalaxyBasic(object):
         self.re_arcsec = None
         self.q = None
         
+        self.re_mass_arcsec = None
+        self.q_mass = None
+        
         self.q0 = 0.19          # Assumed galaxy intrinsic thickness
         
         self.delt_PA = None
@@ -101,6 +104,9 @@ class Galaxy(GalaxyBasic):
         self.re_arcsec = None
         self.sersicPA = None       # PA of major axis ; CCW relative to y axis (up = 0deg, left=90deg)
         self.q = None
+        
+        self.re_mass_arcsec = None
+        self.q_mass = None
         
         self.q0 = 0.19          # Assumed galaxy intrinsic thickness
         

@@ -648,11 +648,11 @@ def gaus_residual_FWHM(params, x_arr, y_arr, y_err):
 ########################################################
 ########################################################
 
-def sigma_e_dispersion(aperModel1DDisp = None, re_arcsec=None, r_outer=None):
+def sigma_e_dispersion(aperModel1DDisp = None, re_arcsec=None, re_mass=None, r_outer=None):
     # To integrate to re_arcsec: set r_outer = re_arcsec
     
     wrapped_sigsq_I = func_wrapper_sigsq_I(re_arcsec, aperModel1DDisp.galaxy.n, 
-                aperModel1DDisp.Ie, d=aperModel1DDisp.d, r_core=aperModel1DDisp.r_core)
+                aperModel1DDisp.Ie, d=aperModel1DDisp.d, r_core=aperModel1DDisp.r_core, re_mass=re_mass)
     wrapped_I = func_wrapper_I(re_arcsec, aperModel1DDisp.galaxy.n, aperModel1DDisp.Ie, 
             r_core=aperModel1DDisp.r_core)
     sigsq_I_int = integrate.quad(wrapped_sigsq_I, 0, r_outer)
@@ -675,8 +675,8 @@ def func_wrapper_I(*args, **kwargs):
         return I_circ_nosee_integrand(x, *args, **kwargs)
     return func
     
-def sigsq_I_circ_nosee_integrand(r, re, n, Ie, d=-0.089, r_core=1/300.):
-    return (sigma_profile(r,re, d=d, r_core=r_core)**2)*\
+def sigsq_I_circ_nosee_integrand(r, re, n, Ie, d=-0.089, r_core=1/300., re_mass=None):
+    return (sigma_profile(r,re_mass, d=d, r_core=r_core)**2)*\
                 I_sersic(r, re, n, Ie, r_core=r_core)* 2*_np.pi*r
     
 def I_circ_nosee_integrand(r, re, n, Ie, r_core=1/300.):
@@ -687,12 +687,12 @@ def I_circ_nosee_integrand(r, re, n, Ie, r_core=1/300.):
 
 ########################################################
 ########################################################
-def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None):
+def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec=None):
     
     # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     # re_arcsec should already be circularized -- use q=1.
     sig_sq_wide = disp_square(aperModel1DDisp.x_arr_full, aperModel1DDisp.y_arr_full, 
-                    q=1., delt_PA=0., re_arcsec=re_arcsec, 
+                    q=1., delt_PA=0., re_mass_arcsec=re_mass_arcsec, 
                     r_core=aperModel1DDisp.r_core)
     
     I_wide  = Igal(aperModel1DDisp.x_arr_full, aperModel1DDisp.y_arr_full, re_arcsec=re_arcsec, 
@@ -802,10 +802,10 @@ def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None):
 #
 ########################################################
 ########################################################
-def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None):
+def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec=None):
     sig_sq_wide = disp_square(aperModel1DDisp.xp_arr_full, aperModel1DDisp.yp_arr_full, 
                     q=aperModel1DDisp.galaxy.q, delt_PA=aperModel1DDisp.delt_PAp, 
-                    re_arcsec=re_arcsec, 
+                    re_mass_arcsec=re_mass_arcsec, 
                     r_core=aperModel1DDisp.r_core)
     
                 
@@ -951,13 +951,13 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None):
     
     
 @jit
-def disp_square(x, y, q=None, delt_PA=None, re_arcsec=None, r_core=None):
+def disp_square(x, y, q=None, delt_PA=None, re_mass_arcsec=None, r_core=None):
     
     r = r_int_ellip(x, y, q, delt_PA)
     
     # r is relative to r_circularized for that given ellipse -- use re_circ.
     # INPUT RE_CIRC!
-    sigma_val = sigma_profile(r, re_arcsec, r_core=r_core)
+    sigma_val = sigma_profile(r, re_mass_arcsec, r_core=r_core)
     
     return sigma_val**2
     

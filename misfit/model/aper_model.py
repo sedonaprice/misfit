@@ -140,7 +140,8 @@ class AperModel1DDisp(AperModel1DDispBase):
         
     def setup_calcs(self):
         self.galaxy.re_arcsec_circ = self.galaxy.re_arcsec* _np.sqrt(self.galaxy.q)
-
+        self.galaxy.re_mass_arcsec_circ = self.galaxy.re_mass_arcsec* _np.sqrt(self.galaxy.q_mass)
+        
         if self.disp_aper_radius_arcsec is None:
             self.disp_aper_radius_arcsec = self.galaxy.re_arcsec_circ
 
@@ -155,10 +156,12 @@ class AperModel1DDisp(AperModel1DDispBase):
         
     def calc_aper_correction(self):
         self.sigma_ap = _kfuncs.sigma_aper_dispersion(aperModel1DDisp = self, 
-                        re_arcsec=self.galaxy.re_arcsec_circ)
+                        re_arcsec=self.galaxy.re_arcsec_circ,
+                        re_mass_arcsec=self.galaxy.re_mass_arcsec_circ)
                         
         self.sigma_e = _kfuncs.sigma_e_dispersion(aperModel1DDisp = self, 
                         re_arcsec=self.galaxy.re_arcsec_circ,
+                        re_mass_arcsec=self.galaxy.re_mass_arcsec_circ,
                         r_outer = self.disp_aper_radius_arcsec)
         
         self.disp_aper_ratio = self.sigma_ap/self.sigma_e
@@ -175,6 +178,7 @@ class AperModel1DDispMisalign(AperModel1DDispBase):
         
     def setup_calcs(self):
         self.galaxy.re_arcsec_circ = self.galaxy.re_arcsec* _np.sqrt(self.galaxy.q)
+        self.galaxy.re_mass_arcsec_circ = self.galaxy.re_mass_arcsec* _np.sqrt(self.galaxy.q_mass)
         
         if self.disp_aper_radius_arcsec is None:
             self.disp_aper_radius_arcsec = self.galaxy.re_arcsec_circ
@@ -191,10 +195,12 @@ class AperModel1DDispMisalign(AperModel1DDispBase):
         
     def calc_aper_correction(self):
         self.sigma_ap = _kfuncs.sigma_aper_dispersion_misalign(aperModel1DDisp = self,
-                        re_arcsec=self.galaxy.re_arcsec_circ)
+                        re_arcsec=self.galaxy.re_arcsec_circ,
+                        re_mass_arcsec=self.galaxy.re_mass_arcsec_circ)
         
         self.sigma_e = _kfuncs.sigma_e_dispersion(aperModel1DDisp = self, 
                         re_arcsec=self.galaxy.re_arcsec_circ,
+                        re_mass_arcsec=self.galaxy.re_mass_arcsec_circ, 
                         r_outer = self.disp_aper_radius_arcsec)
         
         self.disp_aper_ratio = self.sigma_ap/self.sigma_e
