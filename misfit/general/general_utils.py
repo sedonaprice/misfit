@@ -228,7 +228,7 @@ def find_peak_gaussian_KDE_multiD(flatchain, linked_inds, initval):
     """
     
     nparams = len(linked_inds)
-    kern = _gaussian_kde(flatchain[:,inds].T)
+    kern = _gaussian_kde(flatchain[:,linked_inds].T)
     peakvals = _fmin(lambda x: -kern(x), initval, disp=False)
     
     return peakvals

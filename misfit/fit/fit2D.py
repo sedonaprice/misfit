@@ -320,6 +320,7 @@ class FitEmissionLines2D(object):
         ## Make an initial model:
         self.make_model(theta_fitting=theta_fitting_init)
         
+        print("fitEmis2D.kinModel.aperModel.sigma_floor_value={}\n".format(self.kinModel.aperModel.sigma_floor_value))
         
     def run_mcmc(self):
         self = _fit_core.run_mcmc(self)
