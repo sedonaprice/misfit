@@ -20,13 +20,18 @@ import acor
 import copy as _copy
 
 import time, datetime
-import misfit.general.general_utils as _utils
-import fit_io as _fit_io
 
+
+import misfit.general.general_utils as _utils
 import misfit.plot as _misfit_plot
 from misfit import GalaxyBasic, ObsSpectrum2DBasic
 from misfit.model import KinModel2DOptions, KinModel2D
 from misfit.model.kin_classes import KinProfileFiducial, IntensityProfileFiducial, ThetaPriorFlat
+
+try:
+    import fit_io as _fit_io
+except:
+    from . import fit_io as _fit_io
 #import sys
 #from emcee.utils import MPIPool
 

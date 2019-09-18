@@ -17,22 +17,42 @@ from .galaxy import GalaxyBasic, Galaxy, Spectrum, ObsSpectrum, \
 from .instrument import PSFBase, PSFGaussian, PSFMoffat, Instrument, \
         Spectrograph, Imager
 
-import fit
-import general
-import model
-import plot
-import mock
+try:
+    import fit
+    import general
+    import model
+    import plot
+    import mock
+    
+    from model.emission_lines_model import EmissionLinesSpectrum1DModel
 
-from model.emission_lines_model import EmissionLinesSpectrum1DModel
+    from model.kin_model import KinModel2DOptions, KinModel2D
+    from model.kin_classes import Theta2DSettings, Theta2DSettingsFiducial, ThetaPriorFlat, \
+                            KinProfile, KinProfileFiducial, \
+                            IntensityProfileFiducial, IntensityProfileSersicExpScale, \
+                            IntensityProfile
 
-from model.kin_model import KinModel2DOptions, KinModel2D
-from model.kin_classes import Theta2DSettings, Theta2DSettingsFiducial, ThetaPriorFlat, \
-                        KinProfile, KinProfileFiducial, \
-                        IntensityProfileFiducial, IntensityProfileSersicExpScale, \
-                        IntensityProfile
-                        
-from fit import FitEmissionLines2D
-from fit.fit_core import MCMC2DOptions, MCMCResults
+    from fit import FitEmissionLines2D
+    from fit.fit_core import MCMC2DOptions, MCMCResults
+    
+except:
+    from . import fit
+    from . import general
+    from . import model
+    from . import plot
+    from . import mock
+    
+    from .model.emission_lines_model import EmissionLinesSpectrum1DModel
+
+    from .model.kin_model import KinModel2DOptions, KinModel2D
+    from .model.kin_classes import Theta2DSettings, Theta2DSettingsFiducial, ThetaPriorFlat, \
+                            KinProfile, KinProfileFiducial, \
+                            IntensityProfileFiducial, IntensityProfileSersicExpScale, \
+                            IntensityProfile
+
+    from .fit import FitEmissionLines2D
+    from .fit.fit_core import MCMC2DOptions, MCMCResults
+    
 
 
 

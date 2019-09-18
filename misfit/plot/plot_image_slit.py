@@ -21,7 +21,10 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.patches import Ellipse
 
-from plot_utils import rotate_pstamp, rot_object_center, rot_corner_coords, convolve_rot_gal
+try:
+    from plot_utils import rotate_pstamp, rot_object_center, rot_corner_coords, convolve_rot_gal
+except:
+    from .plot_utils import rotate_pstamp, rot_object_center, rot_corner_coords, convolve_rot_gal
 
 
 from astropy.extern import six as _six

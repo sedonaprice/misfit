@@ -14,7 +14,10 @@ from misfit import Galaxy
 
 from numba import jit
 
-import kin_functions as _kfuncs
+try:
+    import kin_functions as _kfuncs
+except:
+    from . import kin_functions as _kfuncs
 #import time
 
 # Options for model:

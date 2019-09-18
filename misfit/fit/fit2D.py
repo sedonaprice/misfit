@@ -16,17 +16,24 @@ import sys as _sys
 
 import pickle as _pickle
 
+from scipy.stats import norm
+
+
 import misfit.general.general_utils as _utils
 import misfit.general.io as _io
 import misfit.plot as _misfit_plot
 
-import fit_core as _fit_core
-import fit_io as _fit_io
-
-
-from scipy.stats import norm
-
-from fit_core import MCMC2DOptions, MCMCResults, FitEmissionLines2DResults
+try:
+    import fit_core as _fit_core
+    import fit_io as _fit_io
+    from fit_core import MCMC2DOptions, MCMCResults, FitEmissionLines2DResults
+except:
+    from . import fit_core as _fit_core
+    from . import fit_io as _fit_io
+    from .fit_core import MCMC2DOptions, MCMCResults, FitEmissionLines2DResults
+    
+    
+    
 from misfit.model import AperModel2D 
 from misfit.model import KinModel2D, KinModel2DOptions
 from misfit.model.kin_classes import KinProfileFiducial, IntensityProfileFiducial, ThetaPriorFlat

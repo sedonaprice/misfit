@@ -4,7 +4,10 @@
 from __future__ import print_function
 
 import numpy as _np
-import kin_functions as _kfuncs
+try:
+    import kin_functions as _kfuncs
+except:
+    from . import kin_functions as _kfuncs
 
 from scipy.stats import norm as _norm
 from astropy.extern import six as _six

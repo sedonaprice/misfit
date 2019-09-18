@@ -6,7 +6,10 @@ from __future__ import print_function
 import numpy as _np
 from astropy.extern import six as _six
 
-import kin_functions as _kfuncs
+try:
+    import kin_functions as _kfuncs
+except:
+    from . import kin_functions as _kfuncs
 
 
 class VelProfile(object):

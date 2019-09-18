@@ -11,8 +11,12 @@ import numpy as _np
 import os as _os
 import sys as _sys
 
-import general_utils as _utils
-import io as _io
+try: 
+    import general_utils as _utils
+    import io as _io
+except:
+    from . import general_utils as _utils
+    from . import io as _io
 
 from astropy.extern import six as _six
 

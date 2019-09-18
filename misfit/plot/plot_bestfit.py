@@ -24,7 +24,10 @@ from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.cm as cm
-from plot_image_slit import plot_image_slit
+try:
+    from plot_image_slit import plot_image_slit
+except:
+    from .plot_image_slit import plot_image_slit
 
 cmap = cm.gray_r
 

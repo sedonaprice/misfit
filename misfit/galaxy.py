@@ -13,10 +13,15 @@ import copy as _copy
 import os as _os
 import sys as _sys
 
-import general.general_utils as _utils
-import general.galaxy_utils as _galaxy_utils
-import general.io as _io
-
+try:
+    import general.general_utils as _utils
+    import general.galaxy_utils as _galaxy_utils
+    import general.io as _io
+except:
+    from .general import general_utils as _utils
+    from .general import galaxy_utils as _galaxy_utils
+    from .general import io as _io
+    
 import astropy.constants as _constants
 c_cgs = _constants.c.cgs.value
 c_AA = c_cgs * 1.e8  # go from cm/s -> AA/s
