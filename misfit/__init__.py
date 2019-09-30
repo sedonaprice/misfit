@@ -24,6 +24,8 @@ try:
     import plot
     import mock
     
+    from galaxy import Galaxy
+    
     from model.emission_lines_model import EmissionLinesSpectrum1DModel
 
     from model.kin_model import KinModel2DOptions, KinModel2D
@@ -41,6 +43,8 @@ except:
     from . import model
     from . import plot
     from . import mock
+    
+    from .galaxy import Galaxy
     
     from .model.emission_lines_model import EmissionLinesSpectrum1DModel
 
