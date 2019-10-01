@@ -362,12 +362,11 @@ class FitEmissionLines1D(object):
                         value_matrix[i,jj] = result_mc.params['cont_coeff'+str(j)].value
                     
                     ###
-                
+                    
                     # Red chisq value: result_mc.redchi
                 #
                 self.save_mc_sim_matrix(value_matrix, line=self.names_arr[0], 
                                         err_filename=err_filename)
-                                        
                                         
             # Get lower, upper 1 sig values for each param
             values_err = _np.zeros((len(self.lmfit_result.params),2))
