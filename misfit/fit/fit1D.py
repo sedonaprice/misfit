@@ -8,6 +8,13 @@
 
 from __future__ import print_function
 
+import matplotlib as mpl
+mpl.use('agg')
+#mpl.rcParams['text.usetex'] = True #False
+
+import matplotlib.pyplot as _plt
+    
+    
 import numpy as _np
 import pandas as _pd
 import copy as _copy
@@ -203,6 +210,9 @@ class FitEmissionLines1D(object):
                     cont_coeff_err
         """
         
+        if self.instrument.instrument_resolution < 0.:
+            raise ValueError
+        
         ########################################################
         # Initialize the model + parameters:
         
@@ -262,11 +272,11 @@ class FitEmissionLines1D(object):
         ########################################################
         # Setup plot for bestfit+errors: start by plotting error fits over data
         if not noPlot:
-            import matplotlib as mpl
-            #mpl.use('Agg')
-            mpl.rcParams['text.usetex'] = True #False
-
-            import matplotlib.pyplot as _plt
+            # import matplotlib as mpl
+            # #mpl.use('Agg')
+            # mpl.rcParams['text.usetex'] = True #False
+            # 
+            # import matplotlib.pyplot as _plt
             
             if plot_filename is None:
                 raise ValueError("Must set plot_filename")
@@ -454,7 +464,9 @@ class FitEmissionLines1D(object):
             
             print("Saving fitting plot to {}".format(plot_filename) )
             _plt.savefig(plot_filename, dpi=600)  #bbox_inches='tight', 
-            _plt.close()
+            _plt.close(f)
+            
+            
             ######
             
             

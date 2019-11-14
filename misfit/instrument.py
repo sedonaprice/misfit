@@ -138,7 +138,7 @@ class Imager(Instrument):
         self.setAttr(**kwargs)
         
         
-        
+# TEST 2019.11.14
 @jit
 def PSF_stamp_gauss(x, y, PSF_FWHM=None, yspace_dither_arc=None):
     # x, y should already be *CENTERED*, and in arcsec.
@@ -157,6 +157,7 @@ def PSF_stamp_gauss(x, y, PSF_FWHM=None, yspace_dither_arc=None):
     
     return conv_stamp
     
+# TEST 2019.11.14
 @jit
 def PSF_stamp_moffat(x, y, alpha=None, beta=None, yspace_dither_arc=None):
     # x, y should already be *CENTERED*, and in arcsec.

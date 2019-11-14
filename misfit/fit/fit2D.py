@@ -18,9 +18,14 @@ import pickle as _pickle
 
 from scipy.stats import norm
 
+try:
+    import misfit.general.general_utils as _utils
+    import misfit.general.io as _io
+    
+except:
+    from ..general import general_utils as _utils
+    from ..general import io as _io
 
-import misfit.general.general_utils as _utils
-import misfit.general.io as _io
 import misfit.plot as _misfit_plot
 
 try:
@@ -226,6 +231,10 @@ class FitEmissionLines2D(object):
             and with and additional, last two paramters as m0_shift and z.
         """
         self.setAttr(**kwargs)
+        
+        # Check:
+        if self.instrument.instrument_resolution < 0.:
+            raise ValueError
         
         # Setup model + priors, if not already specified
         self.setup_model()

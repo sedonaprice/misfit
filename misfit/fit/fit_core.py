@@ -226,6 +226,14 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
         f_log.write('PSF_type = {} \n'.format(fitEmis2D.instrument.PSF.PSF_type))
         f_log.write('PSF yspace_dither_arc = {} \n'.format(fitEmis2D.instrument.PSF.yspace_dither_arc))
         
+        
+        print('NoThread = {}'.format(fitEmis2D.mcmcOptions.NoThread))
+        print('nCPUs: {}'.format(fitEmis2D.mcmcOptions.nCPUs))
+        print('nSubpixels = {}'.format(fitEmis2D.kinModel.kinModelOptions.nSubpixels))
+        print('PSF_type = {}'.format(fitEmis2D.instrument.PSF.PSF_type))
+        print('PSF yspace_dither_arc = {}'.format(fitEmis2D.instrument.PSF.yspace_dither_arc))
+        print("")
+        
         ################################################################
         # --------------------------------
         # Run burn-in

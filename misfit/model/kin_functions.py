@@ -34,7 +34,8 @@ def _between(bounds, value):
 
 # Functions for defining 3D model:
 
-@jit
+#@jit
+@jit(nopython=True)
 def transform_int_3d(x, y, z, deltPA, i_rad):
     # INPUT deltPA is defined to be positive CCW from up. 
 
@@ -64,31 +65,6 @@ def transform_int_3d(x, y, z, deltPA, i_rad):
     
     return (xint,yint,zint)
 
-# #
-# @jit
-# def transform_int_3d_orig_convention(x, y, z, deltPA, i_rad):
-#     # INPUT deltPA is defined to be positive CCW from up. 
-# 
-#     
-#     # First transform to projected, aligned with major axis coords:
-#     rad_deltPA = _np.radians(deltPA)
-#     
-#     # ORIGINAL convention:
-#     # This coords are for positive deltPA that are CW from up.
-#     xp = x*_np.cos(rad_deltPA) - y*_np.sin(rad_deltPA) # minor axis
-#     yp = x*_np.sin(rad_deltPA) + y*_np.cos(rad_deltPA) # major axis
-#     zp = z
-#     
-#     # # SWITCH unit convention: deltPA is defined to be positive CCW from up. 
-#     # xp = x*_np.cos(rad_deltPA) + y*_np.sin(rad_deltPA) # minor axis
-#     # yp = -x*_np.sin(rad_deltPA) + y*_np.cos(rad_deltPA) # major axis
-#     # zp = z
-#     
-#     yint = yp       # Major axis
-#     xint = _np.cos(i_rad)*xp - _np.sin(i_rad)*zp      # minor axis direction
-#     zint = _np.sin(i_rad)*xp + _np.cos(i_rad)*zp
-#     
-#     return (xint,yint,zint)
     
 #
 def add_sigma_collapse_z(I_wide, V_wide, sigma_wide, 
@@ -152,6 +128,7 @@ def add_sigma_collapse_z(I_wide, V_wide, sigma_wide,
         
     return I_Vxy
     
+#@jit(nopython=True)
 @jit
 def I_simple_collapse(I_wide, V_wide, wave_arr, 
                     nWave, nZ, nY, nX, 
@@ -163,10 +140,15 @@ def I_simple_collapse(I_wide, V_wide, wave_arr,
     
     lam_step = delt_wave
     
+    # for k in range(nX):
+    #     for j in range(nY):
+    #         # At every (x,y): for each z, find closest v bin, and add that to the intensity.
+    #         for m in range(nZ):
     for k in _six.moves.xrange(_np.int(nX)):
         for j in _six.moves.xrange(_np.int(nY)):
             # At every (x,y): for each z, find closest v bin, and add that to the intensity.
             for m in _six.moves.xrange(_np.int(nZ)):
+                
                 lam = lam0*(1.+V_wide[m,j,k]/c_kms)
                 I = I_wide[m,j,k]
                 lam_diff = _np.abs(lam - wave_arr)
@@ -175,14 +157,6 @@ def I_simple_collapse(I_wide, V_wide, wave_arr,
                 wh_closest = _np.argmin(v_diff)
                 I_Vxy[wh_closest,j,k] += I*delt_z
                 
-                # if _np.abs(lam_diff).min() != 0.:
-                #     wh_near = _np.where(_np.abs(lam_diff) <= lam_step)[0]
-                #     tmp_fac = (lam_step - _np.abs(lam_diff[wh_near]))
-                #     I_Vxy[wh_near,j,k] += tmp_fac/_np.sum(tmp_fac)*I*delt_z
-                #     
-                # else:
-                #     wh_closest = _np.argmin(v_diff)
-                #     I_Vxy[wh_closest,j,k] += I*delt_z
     
     return I_Vxy
     
@@ -377,7 +351,7 @@ def check_slit_illum(xarr, wh_in_slit_x, A_tmp, mu_y, FWHM_arcsec, tot_slit_widt
     
     return delx_y, FWHM_arcsec
 
-
+# TEST 2019.11.14
 @jit
 def PSF_convolve(spectra_cube, PSF):
     # Convolve with seeing:
@@ -385,31 +359,8 @@ def PSF_convolve(spectra_cube, PSF):
     #seeing_sigma = PSF_FWHM/(2.*_np.sqrt(2.*_np.log(2.)))
     
     if PSF.PSF_FWHM > 0.:
-        #conv_stamp = PSF_stamp_multid(x_arr_flat, y_arr_flat, PSF)
-        
-        # conv_stamp = PSF._conv_stamp
-        # # Test new:
-        # kern3D = _np.zeros(shape=(1, conv_stamp.shape[0], conv_stamp.shape[1],))
-        # kern3D[0, :, :] = conv_stamp
-        
         kern3D = PSF._conv_stamp
         
-        #spectra_cube_see_conv = _np.zeros(spectra_cube.shape)
-        # for m in _six.moves.xrange(nWave):
-        #     # FFT
-        #     spectra_cube_see_conv[m,:,:] = fftconvolve(spectra_cube[m,:,:], conv_stamp, 
-        #             mode='same')
-        #     # Conserve total flux:
-        #     fluxtot = _np.sum(spectra_cube[m,:,:])
-        #     fluxtotnew = _np.sum(spectra_cube_see_conv[m,:,:])
-        #     if fluxtotnew > 0.:
-        #         spectra_cube_see_conv[m,:,:] *= fluxtot/fluxtotnew
-        #     else:
-        #         spectra_cube_see_conv[m,:,:] *= 0.
-        
-        
-        
-        #
         spectra_cube_see_conv = fftconvolve(spectra_cube, kern3D, mode='same')
         # Conserve total flux:
         spectra_cube_see_conv *= _np.sum(spectra_cube)/_np.sum(spectra_cube_see_conv)
@@ -418,6 +369,7 @@ def PSF_convolve(spectra_cube, PSF):
     else:
         return spectra_cube
         
+# TEST 2019.11.14
 @jit
 def PSF_convolve_flat(pstamp, PSF):
     # Convolve with seeing:
@@ -425,10 +377,8 @@ def PSF_convolve_flat(pstamp, PSF):
     #seeing_sigma = PSF_FWHM/(2.*_np.sqrt(2.*_np.log(2.)))
     
     if PSF.PSF_FWHM > 0.:
-        #conv_stamp = PSF_stamp_multid(x_arr_flat, y_arr_flat, PSF)
         
         conv_stamp = PSF._conv_stamp
-        
         
         
         # FFT
@@ -445,44 +395,6 @@ def PSF_convolve_flat(pstamp, PSF):
     else:
         return pstamp
         
-# @jit
-# def PSF_stamp_multid(x, y, PSF):
-#    # x and y should be coordinates in *ARCSECONDS*
-#    # Input x_arr_full, y_arr_full for matrix calculation
-#    # z can either be true z, or WAVELENGTH
-#    
-# 
-#    
-#    if PSF.PSF_type == 'Gaussian':
-#    
-#        PSF_sigma = PSF.PSF_FWHM/(2.*_np.sqrt(2.*_np.log(2.)))  # FWHM -> sigma
-#    
-#        cent = [_np.mean(y), _np.mean(x)]
-#        x_off_arc = x-cent[1]
-#        y_off_arc = y-cent[0]
-#        conv_stamp = _np.exp(- (x_off_arc**2 + y_off_arc**2)/(2.*(PSF_sigma**2)))
-#        
-#    elif PSF.PSF_type == 'Moffat':
-#        
-#        
-#        beta = PSF.PSF_beta
-#        alpha = PSF.PSF_FWHM/(2. * _np.sqrt(_np.power(2., 1./beta), -1))
-#        
-#        
-#        cent = [_np.mean(y), _np.mean(x)]
-#        x_off_arc = x-cent[1]
-#        y_off_arc = y-cent[0]
-#        
-#        conv_stamp = _np.power((1.+(x_off_arc **2 + y_off_arc**2)/(alpha**2)), -beta)
-#        
-#        
-#        
-#    else:
-#        raise ValueError("PSF type not currently supported!:"+PSF.PSF_type)
-#        
-#    
-#    return conv_stamp
-   
 
 
 
@@ -498,9 +410,10 @@ def rebin(a, *args):
     return 1.*eval(''.join(evList))
 
 
-
+# TEST 2019.11.14
 @jit
 def convol_inst(model_out, xx, lam_cent, fwhm_array):
+    # for k in range(model_out.shape[1]):
     for k in _six.moves.xrange(model_out.shape[1]):
         wave_gaus = gaus_from_fwhm(xx, fwhm_array[k], lam_cent)
         # Replace non-finite with 0.
@@ -519,12 +432,10 @@ def convol_inst(model_out, xx, lam_cent, fwhm_array):
         else:
             model_out[:,k] *= 0.
             
-            
-    #
-    
         
     return model_out
-    
+
+# TEST 2019.11.14    
 @jit
 def convol_inst_constfwhm(model_out, xx, lam_cent, fwhm_wave):
     wave_gaus = gaus_from_fwhm(xx, fwhm_wave, lam_cent)
@@ -543,30 +454,6 @@ def convol_inst_constfwhm(model_out, xx, lam_cent, fwhm_wave):
 
 #@jit
 def inst_convol_complete(model_out, wave_arr, inst_disp_wave):
-    # # Convert instrument resol dispersion (sigma) to FWHM
-    # fwhm_wave = inst_disp_wave*(2.*_np.sqrt(2.*_np.log(2.)))
-    # # FWHM in angstroms, matches units of xx = obslam_t
-    # 
-    # # If it's not already an array of the length matching the 
-    # # number of rows (y dir), then just repeat.
-    # try:
-    #     if len(fwhm_wave) > 0:
-    #         inst_fwhm_wave_array = fwhm_wave
-    #     else:
-    #         inst_fwhm_wave_array = _np.repeat(fwhm_wave, model_out.shape[1])
-    # except:
-    #     inst_fwhm_wave_array = _np.repeat(fwhm_wave, model_out.shape[1])
-    # 
-    # # Make gaussian for convolution. Want peak centered on a pixel: xx needs to be odd numbered.
-    # if len(wave_arr) % 2 == 0:
-    #     xx = wave_arr[:-1]
-    # else:
-    #     xx = wave_arr
-    # lam_cent = _np.average(xx)
-    # 
-    # 
-    # return convol_inst(model_out, xx, lam_cent, inst_fwhm_wave_array)
-    
     # Convert instrument resol dispersion (sigma) to FWHM
     fwhm_wave = inst_disp_wave*(2.*_np.sqrt(2.*_np.log(2.)))
     # FWHM in angstroms, matches units of xx = obslam_t
@@ -595,6 +482,7 @@ def inst_convol_complete(model_out, wave_arr, inst_disp_wave):
         return convol_inst_constfwhm(model_out, xx, lam_cent, fwhm_wave)
 
 
+#@jit(nopython=True)
 @jit
 def gaus_from_fwhm(x, FWHM, x0):
     """
@@ -764,40 +652,6 @@ def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec
     return sigma_aper
     
 
-# @jit
-# def seeing_stamp_wide(n_pix, x, y, PSF):
-#     
-#     if PSF.PSF_type == 'Gaussian':
-#         seeing_sigma = seeing_fwhm/(2.*_np.sqrt(2.*_np.log(2.)))  # FWHM -> sigma
-#     
-#         conv_stamp = _np.zeros((4*n_pix+3, 4*n_pix+3))
-#     
-#         cent = [_np.mean(y), _np.mean(x)]
-#     
-#         x_off_arc = x-cent[1]
-#         y_off_arc = y-cent[0]
-#     
-#         conv_stamp = _np.exp(- (x_off_arc**2 + y_off_arc**2)/(2.*(seeing_sigma**2)))
-#     
-#     
-#     elif PSF.PSF_type == 'Moffat':
-#         beta = PSF.PSF_beta
-#         alpha = PSF.PSF_FWHM/(2. * _np.sqrt(_np.power(2., 1./beta), -1))
-#         
-#         conv_stamp = _np.zeros((4*n_pix+3, 4*n_pix+3))
-#         
-#         cent = [_np.mean(y), _np.mean(x)]
-#         x_off_arc = x-cent[1]
-#         y_off_arc = y-cent[0]
-#         
-#         conv_stamp = _np.power((1.+(x_off_arc **2 + y_off_arc**2)/(alpha**2)), -beta)
-#         
-#     else:
-#         raise ValueError("PSF type not currently supported!: "+str(PSF.PSF_type))
-#                             
-#     return conv_stamp
-    
-
     
 #
 ########################################################
@@ -962,6 +816,7 @@ def disp_square(x, y, q=None, delt_PA=None, re_mass_arcsec=None, r_core=None):
     return sigma_val**2
     
     
+#@jit(nopython=True)
 @jit
 def r_int_ellip(x, y, q, delt_PA):
     
@@ -979,8 +834,9 @@ def r_int_ellip(x, y, q, delt_PA):
 
 ###########################################################################
 
-    
-@jit
+
+#@jit    
+@jit(nopython=True)
 def sigma_profile(r, re, d=-0.089, r_core=1/300.):
     # Use values from van de Sande + 2013
     #d = -0.089
@@ -1000,7 +856,8 @@ def Igal(x, y, re_arcsec=None, n=None, q=None, delt_PA=None,r_core=None):
     Ie = 1.  # constant factor placeholder
     return I_sersic(r, re_arcsec, n, Ie, r_core=r_core)
 
-@jit
+#@jit
+@jit(nopython=True)
 def I_sersic(r, re, n, Ie, r_core=1/300.):
     # Sersic surface intensity profile
     b_n = 2.*n - 0.324      # Ciotti 1991, valid 0.5 <= n <= 10
