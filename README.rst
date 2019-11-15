@@ -28,12 +28,12 @@ Speed testing
 --------------
 
 * With py2.7.xx, currently have:
-::
-        ------------------------------------------------
-        misfit.tests.test_2d_model_creation_time():
-           10 loops, best of 3: 47.4 ms per loop
-        ------------------------------------------------
-        
+# ::
+#         ------------------------------------------------
+#         misfit.tests.test_2d_model_creation_time():
+#            10 loops, best of 3: 47.4 ms per loop
+#         ------------------------------------------------
+#         
 
 Dependencies
 ------------
