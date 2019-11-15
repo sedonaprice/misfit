@@ -37,6 +37,7 @@ try:
     import model
     import plot
     import mock
+    import tests
     
     from galaxy import Galaxy
     
@@ -57,6 +58,7 @@ except:
     from . import model
     from . import plot
     from . import mock
+    from . import tests
     
     from .galaxy import Galaxy
     
