@@ -34,6 +34,11 @@ With py2.7.xx, currently have::
        10 loops, best of 3: 47.4 ms per loop
     ------------------------------------------------
         
+        
+With py2.7.17??, it is::
+    <TO DO>
+    
+    
 
 Dependencies
 ------------
