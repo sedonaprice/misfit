@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ObsSpectrum2D &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ObsSpectrum2DBasic" href="misfit.ObsSpectrum2DBasic.html" />
+    <link rel="prev" title="ObsSpectrum1D" href="misfit.ObsSpectrum1D.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="misfit.ObsSpectrum2DBasic.html" title="ObsSpectrum2DBasic">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="misfit.ObsSpectrum1D.html" title="ObsSpectrum1D">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../misfit/index.html" accesskey="U">misfit Documentation</a> &#187;</li>
+      
+      <li>ObsSpectrum2D</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="obsspectrum2d">
+<h1>ObsSpectrum2D<a class="headerlink" href="#obsspectrum2d" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="misfit.ObsSpectrum2D">
+<em class="property">class </em><code class="descclassname">misfit.</code><code class="descname">ObsSpectrum2D</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="misfit.ObsSpectrum2DBasic.html#misfit.ObsSpectrum2DBasic" title="misfit.galaxy.ObsSpectrum2DBasic"><code class="docutils literal"><span class="pre">misfit.ObsSpectrum2DBasic</span></code></a></p>
+<p>Class to hold 2D spectra.</p>
+<dl class="docutils">
+<dt>Takes flux, flux_err, spec_mask, spec_weight (2D arrays),</dt>
+<dd>wave (1D arrays) as input.</dd>
+<dt>Additional attributes:</dt>
+<dd>band:            spectrum band name
+slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)</dd>
+</dl>
+<p>Assumed shape: rows: spatial, columns: wavelength (eg, [ind_spatial, ind_wave])</p>
+<dl class="docutils">
+<dt>Lines to be modeled+fit: at minimum, input:</dt>
+<dd><p class="first">linegroup_name              (eg, &#8216;OIII&#8217; to get OIII doublet)</p>
+<dl class="last docutils">
+<dt>or else explicitly set:</dt>
+<dd>linenames_arr
+restwave_arr
+flux_ratio_arr</dd>
+</dl>
+</dd>
+<dt>Optional keywords: </dt>
+<dd>units_wave      (default: &#8216;angstroms&#8217;)
+units_flux      (default: &#8216;flam&#8217;)</dd>
+</dl>
+<p class="rubric">Methods Summary</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.calculate_fit_weights" title="misfit.ObsSpectrum2D.calculate_fit_weights"><code class="xref py py-obj docutils literal"><span class="pre">calculate_fit_weights</span></code></a>()</td>
+<td>Determine weighting for fitting &#8211; eg, upweight edges if weighting_type=&#8217;up-edges&#8217;</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.fit_emission_y_profile" title="misfit.ObsSpectrum2D.fit_emission_y_profile"><code class="xref py py-obj docutils literal"><span class="pre">fit_emission_y_profile</span></code></a>(galaxy,&nbsp;instrument[,&nbsp;...])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.fit_prep_calcs" title="misfit.ObsSpectrum2D.fit_prep_calcs"><code class="xref py py-obj docutils literal"><span class="pre">fit_prep_calcs</span></code></a>(galaxy,&nbsp;instrument,&nbsp;\*\*kwargs)</td>
+<td>Prepare a copy ObsSpectrum2D class which holds the input spec2D,  then subtract continuum, mask, and trim spec2D for fitting.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.get_low_snr_mask" title="misfit.ObsSpectrum2D.get_low_snr_mask"><code class="xref py py-obj docutils literal"><span class="pre">get_low_snr_mask</span></code></a>([debug])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.get_m0_lam0_pos" title="misfit.ObsSpectrum2D.get_m0_lam0_pos"><code class="xref py py-obj docutils literal"><span class="pre">get_m0_lam0_pos</span></code></a>(galaxy)</td>
+<td>Determine m0_shift, lam0 for fitting &#8211; exact position, not rounded.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.get_skyline_mask" title="misfit.ObsSpectrum2D.get_skyline_mask"><code class="xref py py-obj docutils literal"><span class="pre">get_skyline_mask</span></code></a>([full])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.initialize_derived_variables" title="misfit.ObsSpectrum2D.initialize_derived_variables"><code class="xref py py-obj docutils literal"><span class="pre">initialize_derived_variables</span></code></a>(galaxy)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.initialize_lineset" title="misfit.ObsSpectrum2D.initialize_lineset"><code class="xref py py-obj docutils literal"><span class="pre">initialize_lineset</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.initialize_skylevels" title="misfit.ObsSpectrum2D.initialize_skylevels"><code class="xref py py-obj docutils literal"><span class="pre">initialize_skylevels</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.subtract_continuum" title="misfit.ObsSpectrum2D.subtract_continuum"><code class="xref py py-obj docutils literal"><span class="pre">subtract_continuum</span></code></a>(galaxy[,&nbsp;no_cont_subtraction])</td>
+<td>Subtract continuum from 2D spectrum, fixing slope of every row to that of 1D spectrum.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.trim_spectrum_spatial" title="misfit.ObsSpectrum2D.trim_spectrum_spatial"><code class="xref py py-obj docutils literal"><span class="pre">trim_spectrum_spatial</span></code></a>(galaxy,&nbsp;instrument)</td>
+<td>Method to trim the 2D spectrum to a given spatial range &#8211; in preparation for fitting.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum2D.trim_spectrum_wavelength" title="misfit.ObsSpectrum2D.trim_spectrum_wavelength"><code class="xref py py-obj docutils literal"><span class="pre">trim_spectrum_wavelength</span></code></a>(galaxy[,&nbsp;...])</td>
+<td>Method to trim the 2D spectrum to a given wavelength range.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.calculate_fit_weights">
+<code class="descname">calculate_fit_weights</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.calculate_fit_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.calculate_fit_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine weighting for fitting &#8211; eg, upweight edges if weighting_type=&#8217;up-edges&#8217;</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.fit_emission_y_profile">
+<code class="descname">fit_emission_y_profile</code><span class="sig-paren">(</span><em>galaxy</em>, <em>instrument</em>, <em>filename_plot=None</em>, <em>plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.fit_emission_y_profile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.fit_emission_y_profile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.fit_prep_calcs">
+<code class="descname">fit_prep_calcs</code><span class="sig-paren">(</span><em>galaxy</em>, <em>instrument</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.fit_prep_calcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.fit_prep_calcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prepare a copy ObsSpectrum2D class which holds the input spec2D, 
+then subtract continuum, mask, and trim spec2D for fitting.</p>
+<p>At minimum, input linegroup_name (eg, &#8216;OIII&#8217; to get OIII doublet)</p>
+<dl class="docutils">
+<dt>Either input linenames_arr (to read all line ranges, etc) from default MISFIT param file, </dt>
+<dd><p class="first">or input explicit parameter filenames + linenames_arr
+or directly input
+trim_restwave_range (and have galaxy.z set) to do in restframe,</p>
+<blockquote class="last">
+<div>or   trim_obsframe_range  to trim in observed frame
+or   param_filename and linename  to read the set from a parameters file.</div></blockquote>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.get_low_snr_mask">
+<code class="descname">get_low_snr_mask</code><span class="sig-paren">(</span><em>debug=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.get_low_snr_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.get_low_snr_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.get_m0_lam0_pos">
+<code class="descname">get_m0_lam0_pos</code><span class="sig-paren">(</span><em>galaxy</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.get_m0_lam0_pos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.get_m0_lam0_pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine m0_shift, lam0 for fitting &#8211; exact position, not rounded.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.get_skyline_mask">
+<code class="descname">get_skyline_mask</code><span class="sig-paren">(</span><em>full=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.get_skyline_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.get_skyline_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.initialize_derived_variables">
+<code class="descname">initialize_derived_variables</code><span class="sig-paren">(</span><em>galaxy</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.initialize_derived_variables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.initialize_derived_variables" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.initialize_lineset">
+<code class="descname">initialize_lineset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.initialize_lineset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.initialize_lineset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.initialize_skylevels">
+<code class="descname">initialize_skylevels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.initialize_skylevels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.initialize_skylevels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.subtract_continuum">
+<code class="descname">subtract_continuum</code><span class="sig-paren">(</span><em>galaxy</em>, <em>no_cont_subtraction=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.subtract_continuum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.subtract_continuum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subtract continuum from 2D spectrum, fixing slope of every row to that of 1D spectrum.
+Requires wave, flux, flux_err, spec_weight</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.trim_spectrum_spatial">
+<code class="descname">trim_spectrum_spatial</code><span class="sig-paren">(</span><em>galaxy</em>, <em>instrument</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.trim_spectrum_spatial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.trim_spectrum_spatial" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Method to trim the 2D spectrum to a given spatial range &#8211; in preparation for fitting.</dt>
+<dd>Trim vertically: identify yposition and bounding pixel indices:</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum2D.trim_spectrum_wavelength">
+<code class="descname">trim_spectrum_wavelength</code><span class="sig-paren">(</span><em>galaxy</em>, <em>trim_restwave_range=None</em>, <em>trim_obswave_range=None</em>, <em>param_restwave_filename=None</em>, <em>linename=None</em>, <em>inplace=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum2D.trim_spectrum_wavelength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum2D.trim_spectrum_wavelength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to trim the 2D spectrum to a given wavelength range.
+Either input trim_restwave_range (and have galaxy.z set) to do in restframe,</p>
+<blockquote>
+<div>or   trim_obsframe_range  to trim in observed frame
+or   param_filename and linename  to read the set from a parameters file.</div></blockquote>
+<p>Returns a trimmed copy of self</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">ObsSpectrum2D</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/misfit.ObsSpectrum2D.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

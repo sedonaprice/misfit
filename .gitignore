@@ -6,4 +6,5 @@
 *.pyc
 *pickle
 
+*__pycache__*
 

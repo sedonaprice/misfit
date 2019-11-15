@@ -1,0 +1,522 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>misfit.model.kin_model &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../../../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for misfit.model.kin_model</h1><div class="highlight"><pre>
+<span class="c1"># Copyright 2016, 2017 Sedona Price &lt;sedona.price@gmail.com&gt;.</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_np</span>
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">_copy</span>
+<span class="kn">from</span> <span class="nn">astropy.extern</span> <span class="k">import</span> <span class="n">six</span> <span class="k">as</span> <span class="n">_six</span>
+
+<span class="kn">from</span> <span class="nn">misfit.model.kin_classes</span> <span class="k">import</span> <span class="n">KinProfileFiducial</span><span class="p">,</span> <span class="n">IntensityProfileFiducial</span><span class="p">,</span> \
+                                <span class="n">Theta2DSettingsFiducial</span>
+<span class="kn">from</span> <span class="nn">misfit.model</span> <span class="k">import</span> <span class="n">AperModel2D</span>
+<span class="kn">from</span> <span class="nn">misfit</span> <span class="k">import</span> <span class="n">Galaxy</span>
+
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">kin_functions</span> <span class="k">as</span> <span class="nn">_kfuncs</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">kin_functions</span> <span class="k">as</span> <span class="n">_kfuncs</span>
+<span class="c1">#import time</span>
+
+<span class="c1"># Options for model:</span>
+<div class="viewcode-block" id="KinModel2DOptions"><a class="viewcode-back" href="../../../api/misfit.KinModel2DOptions.html#misfit.KinModel2DOptions">[docs]</a><span class="k">class</span> <span class="nc">KinModel2DOptions</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold model options for KinModel2D</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nSubpixels</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">pad_factor</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> 
+            <span class="n">do_position_wave_shift</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">do_inst_res_conv_effective</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+            <span class="n">absvalsigma</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">adaptive_upsample_wave</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">adaptive_upsample_factor</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> 
+            <span class="n">sigma_floor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">nSubpixels</span> <span class="o">=</span> <span class="n">nSubpixels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_factor</span> <span class="o">=</span> <span class="n">pad_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_position_wave_shift</span> <span class="o">=</span> <span class="n">do_position_wave_shift</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_inst_res_conv_effective</span> <span class="o">=</span> <span class="n">do_inst_res_conv_effective</span>
+        
+        <span class="c1"># Options for handling v. small dispersion calculations:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">absvalsigma</span> <span class="o">=</span> <span class="n">absvalsigma</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_upsample_wave</span> <span class="o">=</span> <span class="n">adaptive_upsample_wave</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adaptive_upsample_factor</span> <span class="o">=</span> <span class="n">adaptive_upsample_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma_floor</span> <span class="o">=</span> <span class="n">sigma_floor</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="KinModel2DOptions.setAttr"><a class="viewcode-back" href="../../../api/misfit.KinModel2DOptions.html#misfit.KinModel2DOptions.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="KinModel2DOptions.copy"><a class="viewcode-back" href="../../../api/misfit.KinModel2DOptions.html#misfit.KinModel2DOptions.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+
+
+
+<span class="c1"># Kinematic 2D model:</span>
+<div class="viewcode-block" id="KinModel2D"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D">[docs]</a><span class="k">class</span> <span class="nc">KinModel2D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to handle kinematic fitting models.</span>
+<span class="sd">        Handles variable + fixed parameters, talks to the Aper2DModel class, </span>
+<span class="sd">        creates scaled model to data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">thetaSettings</span><span class="o">=</span><span class="n">Theta2DSettingsFiducial</span><span class="p">(),</span> 
+                    <span class="n">kinProfile</span><span class="o">=</span><span class="n">KinProfileFiducial</span><span class="p">(),</span> 
+                    <span class="n">intensityProfile</span><span class="o">=</span><span class="n">IntensityProfileFiducial</span><span class="p">(</span><span class="n">Galaxy</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span><span class="n">q0</span><span class="o">=</span><span class="mf">0.19</span><span class="p">,</span><span class="n">re_arcsec</span><span class="o">=</span><span class="mf">0.</span><span class="p">)),</span> 
+                    <span class="n">kinModelOptions</span> <span class="o">=</span> <span class="n">KinModel2DOptions</span><span class="p">(),</span> 
+                    <span class="n">do_position_wave_shift</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+                    <span class="n">do_inst_res_conv_effective</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># Galaxy()</span>
+        <span class="c1"># Unpack thetaSettings:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span> <span class="o">=</span> <span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_vary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names</span> <span class="o">=</span> <span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names_nice</span> <span class="o">=</span> <span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_names_nice</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_init</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># self.kinProfile = KinProfileFiducial(theta=self.theta)          # Default</span>
+        <span class="c1"># self.intensityProfile = IntensityProfileFiducial(galaxy=galaxy) # Default</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span> <span class="o">=</span> <span class="n">kinProfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span> <span class="o">=</span> <span class="n">intensityProfile</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">update_theta</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>          
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="n">galaxy</span><span class="p">)</span>   
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">=</span> <span class="s1">&#39;wave&#39;</span>   <span class="c1"># wave / velocity</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_position_wave_shift</span> <span class="o">=</span> <span class="n">do_position_wave_shift</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">do_inst_res_conv_effective</span> <span class="o">=</span> <span class="n">do_inst_res_conv_effective</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_scale</span> <span class="o">=</span> <span class="kc">False</span>    <span class="c1"># Set this to true for no scaling (eg, just generate models)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span> <span class="o">=</span> <span class="n">kinModelOptions</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bestfit</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="KinModel2D.setAttr"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+        
+        
+        <span class="c1"># Save input theta:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">theta_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">theta_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
+            
+        <span class="c1"># Count number of free variables:</span>
+        <span class="n">wh_free</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wh_free</span><span class="p">)</span>
+        
+        <span class="c1"># Make sure profiles are updated:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_profiles</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="KinModel2D.copy"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KinModel2D.update_parameters"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.update_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Unpack current fitting parameters into the whole parameter array</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_fitting</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span></div>
+        <span class="c1">#self.update_profiles()</span>
+        
+<div class="viewcode-block" id="KinModel2D.update_profiles"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.update_profiles">[docs]</a>    <span class="k">def</span> <span class="nf">update_profiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">update_theta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span></div>
+        <span class="c1"># self.intensityProfile.update_theta(self.theta)</span>
+                
+<div class="viewcode-block" id="KinModel2D.scale_model"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.scale_model">[docs]</a>    <span class="k">def</span> <span class="nf">scale_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="c1"># Use the galaxy spectrum to scale the model:</span>
+        <span class="n">wh_no_sky</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">wh_nosky</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        
+        <span class="n">num_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux</span><span class="p">[:,</span><span class="n">wh_no_sky</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[:,</span><span class="n">wh_no_sky</span><span class="p">]</span><span class="o">/</span>\
+                            <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="p">[:,</span><span class="n">wh_no_sky</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">den_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">[:,</span><span class="n">wh_no_sky</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="p">[:,</span><span class="n">wh_no_sky</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">num_arr</span><span class="p">[</span><span class="o">~</span><span class="n">_np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">num_arr</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">num_arr</span><span class="p">[</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">den_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">den_arr</span><span class="p">[</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">den_arr</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">99.</span>
+        
+        <span class="n">ratio_arr</span> <span class="o">=</span> <span class="n">num_arr</span><span class="o">/</span><span class="n">den_arr</span>
+        <span class="c1"># Tile it: column over rows: like nY</span>
+        <span class="n">ratio_tile</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ratio_arr</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">*=</span> <span class="n">ratio_tile</span></div>
+        
+    
+<div class="viewcode-block" id="KinModel2D.make_model"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.make_model">[docs]</a>    <span class="k">def</span> <span class="nf">make_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Check that the input matches what is already setup:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of fitting parameters does not match initialized number of free parameters&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_profiles</span><span class="p">()</span>  <span class="c1"># Needed to update kinProfile theta values for calculations</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span> <span class="o">=</span> <span class="n">AperModel2D</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="n">instrument</span><span class="p">,</span> 
+                                <span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> 
+                                <span class="n">spec_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span><span class="p">,</span> 
+                                <span class="n">kinProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span><span class="p">,</span> 
+                                <span class="n">intensityProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span><span class="p">,</span>
+                                <span class="n">nSubpixels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">nSubpixels</span><span class="p">,</span>
+                                <span class="n">pad_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">pad_factor</span><span class="p">,</span>
+                                <span class="n">do_position_wave_shift</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">do_position_wave_shift</span><span class="p">,</span>
+                                <span class="n">do_inst_res_conv_effective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">do_inst_res_conv_effective</span><span class="p">,</span>
+                                <span class="n">absvalsigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">absvalsigma</span><span class="p">,</span> 
+                                <span class="n">adaptive_upsample_wave</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">adaptive_upsample_wave</span><span class="p">,</span> 
+                                <span class="n">adaptive_upsample_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">adaptive_upsample_factor</span><span class="p">,</span> 
+                                <span class="n">sigma_floor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">sigma_floor</span><span class="p">)</span><span class="c1">#,</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># self.aperModel.update_model(theta=self.theta, </span>
+            <span class="c1">#                     kinProfile=self.kinProfile)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+            
+        <span class="c1"># # Save the 2D model to base part of class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KinModel2D.update_model"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.update_model">[docs]</a>    <span class="k">def</span> <span class="nf">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Check that the input matches what is already setup:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of fitting parameters does not match initialized number of free parameters&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span>       <span class="c1"># expand theta_fitting into full model theta</span>
+        <span class="c1">#self.aperModel.kinProfile.update_theta(self.theta)</span>
+        
+        <span class="c1"># self.aperModel.update_model(theta=self.theta, </span>
+        <span class="c1">#                         kinProfile=self.aperModel.kinProfile)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        
+        <span class="c1"># # Save the 2D model to base part of class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_scale</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scale_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="p">)</span></div>
+            
+    <span class="c1"># +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span>
+    
+<div class="viewcode-block" id="KinModel2D.make_3D_int_model"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.make_3D_int_model">[docs]</a>    <span class="k">def</span> <span class="nf">make_3D_int_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># For illustrative purposes / toy-model use for mock analysis of IFU data:</span>
+        <span class="c1"># Note: Has no normalization applied. For the user to deal with later.</span>
+        
+        <span class="c1"># Check that the input matches what is already setup:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of fitting parameters does not match initialized number of free parameters&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_profiles</span><span class="p">()</span>  <span class="c1"># Needed to update kinProfile theta values for calculations</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Change the &quot;slit width&quot; to match the y dim for the IFU cube test case:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">generate_model</span><span class="p">:</span>
+                <span class="n">n_pix_y_whole</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_pix_y_whole</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">instrument</span><span class="o">.</span><span class="n">slit_width</span> <span class="o">=</span> <span class="n">n_pix_y_whole</span><span class="o">*</span><span class="n">instrument</span><span class="o">.</span><span class="n">pixscale</span>
+            <span class="n">n_pix_x_whole</span> <span class="o">=</span> <span class="n">n_pix_y_whole</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span> <span class="o">=</span> <span class="n">AperModel2D</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="n">instrument</span><span class="p">,</span> 
+                                <span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> 
+                                <span class="n">spec_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span><span class="p">,</span> 
+                                <span class="n">kinProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span><span class="p">,</span> 
+                                <span class="n">intensityProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span><span class="p">,</span>
+                                <span class="n">nSubpixels</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">nSubpixels</span><span class="p">,</span>
+                                <span class="n">pad_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">pad_factor</span><span class="p">,</span>
+                                <span class="n">do_position_wave_shift</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">do_position_wave_shift</span><span class="p">,</span>
+                                <span class="n">do_inst_res_conv_effective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">do_inst_res_conv_effective</span><span class="p">,</span>
+                                <span class="n">absvalsigma</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">absvalsigma</span><span class="p">,</span> 
+                                <span class="n">adaptive_upsample_wave</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">adaptive_upsample_wave</span><span class="p">,</span> 
+                                <span class="n">sigma_floor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">sigma_floor</span><span class="p">,</span> 
+                                <span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span><span class="c1">#,</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># self.aperModel.update_model(theta=self.theta, </span>
+            <span class="c1">#                     kinProfile=self.kinProfile)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        
+        <span class="c1">###################</span>
+        <span class="c1"># Do downsampling:</span>
+        <span class="c1"># # Save the 2D model to base part of class</span>
+        
+        <span class="c1"># Shape: nSpec, nY, nX</span>
+        <span class="n">nWave</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">wave</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+        <span class="c1"># if self.debug:</span>
+        <span class="c1">#     print(&quot;spec cube conv shape={}&quot;.format(self.aperModel.spectra_cube_conv.shape))</span>
+        <span class="c1">#     print(&quot;n_pix_y_whole={}, padY={}, n_pix_x_whole={}, padX={}&quot;.format(n_pix_y_whole, </span>
+        <span class="c1">#             self.aperModel.padY, n_pix_x_whole, self.aperModel.padX))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_cube</span> <span class="o">=</span> <span class="n">_kfuncs</span><span class="o">.</span><span class="n">rebin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">spectra_cube_conv</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                    <span class="n">nWave</span><span class="p">,</span> <span class="n">n_pix_y_whole</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">padY</span><span class="p">,</span> <span class="n">n_pix_x_whole</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">padX</span><span class="p">)</span>
+                
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="c1"># Downsample others too</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">I_wide</span> <span class="o">=</span> <span class="n">_kfuncs</span><span class="o">.</span><span class="n">rebin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">I_wide</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                        <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_x_whole</span><span class="p">)</span>
+            <span class="c1">#</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">V_wide</span> <span class="o">=</span> <span class="n">_kfuncs</span><span class="o">.</span><span class="n">rebin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">V_wide</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                        <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_x_whole</span><span class="p">)</span>
+            <span class="c1">#</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">I_Vsq_wide</span> <span class="o">=</span> <span class="n">_kfuncs</span><span class="o">.</span><span class="n">rebin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">I_Vsq_wide</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                        <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_y_whole</span><span class="p">,</span> <span class="n">n_pix_x_whole</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="KinModel2D.update_3D_int_model"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.update_3D_int_model">[docs]</a>    <span class="k">def</span> <span class="nf">update_3D_int_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># For illustrative purposes / toy-model use for mock analysis of IFU data:</span>
+        <span class="c1"># Note: Has no normalization applied. For the user to deal with later.</span>
+        
+        <span class="c1"># Check that the input matches what is already setup:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of fitting parameters does not match initialized number of free parameters&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span>
+        <span class="c1"># self.aperModel.kinProfile.update_theta(self.theta)</span>
+        <span class="c1"># </span>
+        <span class="c1"># self.aperModel.update_model(theta=self.theta, </span>
+        <span class="c1">#                         kinProfile=self.aperModel.kinProfile)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        
+        <span class="c1"># # Save the 2D model to base part of class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_cube</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">spectra_cube</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+        
+    <span class="c1"># +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span>
+        
+        
+<div class="viewcode-block" id="KinModel2D.model_llike"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.model_llike">[docs]</a>    <span class="k">def</span> <span class="nf">model_llike</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_model_llike</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KinModel2D.model_chisq"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.model_chisq">[docs]</a>    <span class="k">def</span> <span class="nf">model_chisq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_model_chisq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="KinModel2D.model_redchisq"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.model_redchisq">[docs]</a>    <span class="k">def</span> <span class="nf">model_redchisq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="n">_model_chisq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        <span class="n">wh</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">nFree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span>
+        <span class="n">nPix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wh</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">chisq</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">nPix</span><span class="o">-</span><span class="n">nFree</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KinModel2D.model_redchisq_weight_ref"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.model_redchisq_weight_ref">[docs]</a>    <span class="k">def</span> <span class="nf">model_redchisq_weight_ref</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Eg, take an array of all ones and weight it.</span>
+        <span class="n">chisq_ref_allones</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">fitting_weight_matrix</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        
+        <span class="n">wh</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">nFree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span>
+        <span class="n">nPix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wh</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">chisq_ref_allones</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">nPix</span><span class="o">-</span><span class="n">nFree</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="KinModel2D.model_redchisq_no_weight"><a class="viewcode-back" href="../../../api/misfit.KinModel2D.html#misfit.KinModel2D.model_redchisq_no_weight">[docs]</a>    <span class="k">def</span> <span class="nf">model_redchisq_no_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="n">_model_chisq_no_weight</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        <span class="n">wh</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">nFree</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_free_param</span>
+        <span class="n">nPix</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wh</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">chisq</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="n">nPix</span><span class="o">-</span><span class="n">nFree</span><span class="p">)</span></div></div>
+        
+        
+<span class="c1">#</span>
+<span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">_model_llike</span><span class="p">(</span><span class="n">kinModel</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">kinModel</span><span class="o">.</span><span class="n">model</span>
+        
+    <span class="n">chisq_arr_raw_modified</span> <span class="o">=</span> <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">*</span> \
+            <span class="p">(</span> <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">fitting_weight_matrix</span> <span class="o">*</span> \
+                 <span class="p">((((</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux</span><span class="o">-</span><span class="n">model</span><span class="p">))</span><span class="o">/</span>\
+                <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="p">)</span><span class="o">**</span><span class="mf">2.</span><span class="p">)</span> <span class="o">+</span> \
+            <span class="n">_np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">_np</span><span class="o">.</span><span class="n">pi</span><span class="o">*</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="p">)</span>
+    
+    <span class="c1"># chisq_arr_raw_modified = kinModel.aperModel.galaxy.spec2D.spec_mask * \</span>
+    <span class="c1">#         ( ((((kinModel.aperModel.galaxy.spec2D.flux-model))/\</span>
+    <span class="c1">#             kinModel.aperModel.galaxy.spec2D.flux_err)**2.) + \</span>
+    <span class="c1">#         _np.log10(2.*_np.pi*kinModel.aperModel.galaxy.spec2D.flux_err**2) )</span>
+    <span class="k">return</span> <span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">chisq_arr_raw_modified</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        
+<span class="c1">#</span>
+<span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">_model_chisq</span><span class="p">(</span><span class="n">kinModel</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to return the reduced chisq of the residual between the </span>
+<span class="sd">    2D spectrum amd model</span>
+<span class="sd">    </span>
+<span class="sd">    Input:</span>
+<span class="sd">        emis_t:         2D trimmed (wave and spatial) emission line image</span>
+<span class="sd">        emis_err_t:     error of the 2D trimmed emission line image</span>
+<span class="sd">        emis_mod:       2D kinematic model image</span>
+<span class="sd">        #m0:                spatial pixel position of pos image</span>
+<span class="sd">        #m1, m2:            spatial pixel positions of top, bottom neg images</span>
+<span class="sd">        n:              number of model free parameters.</span>
+<span class="sd">        </span>
+<span class="sd">    Output:</span>
+<span class="sd">        chisq_red:      Reduced chisq stat for goodness of fit of the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Data:  fitEmis2D.galaxy.spec2D.flux, flux_err, spec_mask, fitting_weight_matrix</span>
+    <span class="c1"># Model: fitEmis2D.kinModel.model</span>
+    
+    <span class="c1">##################################</span>
+    
+    <span class="c1"># Mask spectrum, do diff with model, divide error, and multiply by fitting weight matrix</span>
+    <span class="c1">#       (eg, upweighting edges)</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">kinModel</span><span class="o">.</span><span class="n">model</span>
+        
+    <span class="n">chisq_arr_raw</span> <span class="o">=</span> <span class="p">((((</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux</span><span class="o">-</span><span class="n">model</span><span class="p">)</span><span class="o">*</span>\
+                <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span><span class="p">)</span><span class="o">/</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="p">)</span><span class="o">**</span><span class="mf">2.</span><span class="p">)</span><span class="o">*</span>\
+                <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">fitting_weight_matrix</span>
+                
+    <span class="n">chisq</span> <span class="o">=</span> <span class="n">chisq_arr_raw</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">chisq</span>
+<span class="c1">#</span>
+<span class="nd">@jit</span>
+<span class="k">def</span> <span class="nf">_model_chisq_no_weight</span><span class="p">(</span><span class="n">kinModel</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Function to return the reduced chisq of the residual between the </span>
+<span class="sd">    2D spectrum amd model</span>
+<span class="sd">    </span>
+<span class="sd">    Input:</span>
+<span class="sd">        emis_t:         2D trimmed (wave and spatial) emission line image</span>
+<span class="sd">        emis_err_t:     error of the 2D trimmed emission line image</span>
+<span class="sd">        emis_mod:       2D kinematic model image</span>
+<span class="sd">        #m0:                spatial pixel position of pos image</span>
+<span class="sd">        #m1, m2:            spatial pixel positions of top, bottom neg images</span>
+<span class="sd">        n:              number of model free parameters.</span>
+<span class="sd">        </span>
+<span class="sd">    Output:</span>
+<span class="sd">        chisq_red:      Reduced chisq stat for goodness of fit of the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Data:  fitEmis2D.galaxy.spec2D.flux, flux_err, spec_mask, fitting_weight_matrix</span>
+    <span class="c1"># Model: fitEmis2D.kinModel.model</span>
+    
+    <span class="c1">##################################</span>
+    
+    <span class="c1"># Mask spectrum, do diff with model, divide error, and multiply by fitting weight matrix</span>
+    <span class="c1">#       (eg, upweighting edges)</span>
+    <span class="k">if</span> <span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">kinModel</span><span class="o">.</span><span class="n">model</span>
+        
+    <span class="n">chisq_arr_raw</span> <span class="o">=</span> <span class="p">((((</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux</span><span class="o">-</span><span class="n">model</span><span class="p">)</span><span class="o">*</span>\
+                <span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_mask</span><span class="p">)</span><span class="o">/</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_err</span><span class="p">)</span><span class="o">**</span><span class="mf">2.</span><span class="p">)</span>
+                
+    <span class="n">chisq</span> <span class="o">=</span> <span class="n">chisq_arr_raw</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">chisq</span>
+
+
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

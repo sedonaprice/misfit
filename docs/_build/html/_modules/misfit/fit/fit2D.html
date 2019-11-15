@@ -1,0 +1,520 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>misfit.fit.fit2D &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../../../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for misfit.fit.fit2D</h1><div class="highlight"><pre>
+<span class="c1"># misfit/fit2D.py</span>
+<span class="c1"># Fit 2D emission lines for MISFIT</span>
+<span class="c1"># </span>
+<span class="c1"># Copyright 2016, 2017 Sedona Price &lt;sedona.price@gmail.com&gt;.</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE</span>
+
+<span class="c1"># Hidden modules prepended with &#39;_&#39;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">_pd</span>
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">_copy</span>
+<span class="kn">import</span> <span class="nn">os</span> <span class="k">as</span> <span class="nn">_os</span>
+<span class="kn">import</span> <span class="nn">sys</span> <span class="k">as</span> <span class="nn">_sys</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span> <span class="k">as</span> <span class="nn">_pickle</span>
+
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="k">import</span> <span class="n">norm</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">misfit.general.general_utils</span> <span class="k">as</span> <span class="nn">_utils</span>
+    <span class="kn">import</span> <span class="nn">misfit.general.io</span> <span class="k">as</span> <span class="nn">_io</span>
+    
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">..general</span> <span class="k">import</span> <span class="n">general_utils</span> <span class="k">as</span> <span class="n">_utils</span>
+    <span class="kn">from</span> <span class="nn">..general</span> <span class="k">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">_io</span>
+
+<span class="kn">import</span> <span class="nn">misfit.plot</span> <span class="k">as</span> <span class="nn">_misfit_plot</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">fit_core</span> <span class="k">as</span> <span class="nn">_fit_core</span>
+    <span class="kn">import</span> <span class="nn">fit_io</span> <span class="k">as</span> <span class="nn">_fit_io</span>
+    <span class="kn">from</span> <span class="nn">fit_core</span> <span class="k">import</span> <span class="n">MCMC2DOptions</span><span class="p">,</span> <span class="n">MCMCResults</span><span class="p">,</span> <span class="n">FitEmissionLines2DResults</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">fit_core</span> <span class="k">as</span> <span class="n">_fit_core</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">fit_io</span> <span class="k">as</span> <span class="n">_fit_io</span>
+    <span class="kn">from</span> <span class="nn">.fit_core</span> <span class="k">import</span> <span class="n">MCMC2DOptions</span><span class="p">,</span> <span class="n">MCMCResults</span><span class="p">,</span> <span class="n">FitEmissionLines2DResults</span>
+    
+    
+    
+<span class="kn">from</span> <span class="nn">misfit.model</span> <span class="k">import</span> <span class="n">AperModel2D</span> 
+<span class="kn">from</span> <span class="nn">misfit.model</span> <span class="k">import</span> <span class="n">KinModel2D</span><span class="p">,</span> <span class="n">KinModel2DOptions</span>
+<span class="kn">from</span> <span class="nn">misfit.model.kin_classes</span> <span class="k">import</span> <span class="n">KinProfileFiducial</span><span class="p">,</span> <span class="n">IntensityProfileFiducial</span><span class="p">,</span> <span class="n">ThetaPriorFlat</span>
+<span class="kn">from</span> <span class="nn">misfit</span> <span class="k">import</span> <span class="n">Galaxy</span>
+
+<span class="kn">import</span> <span class="nn">astropy.constants</span> <span class="k">as</span> <span class="nn">_constants</span>
+<span class="n">c_cgs</span> <span class="o">=</span> <span class="n">_constants</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">cgs</span><span class="o">.</span><span class="n">value</span>
+<span class="n">c_kms</span> <span class="o">=</span> <span class="n">c_cgs</span> <span class="o">*</span> <span class="mf">1.e-5</span> <span class="c1"># from cm/s -&gt; km/s</span>
+<span class="n">c_AA</span> <span class="o">=</span> <span class="n">c_cgs</span> <span class="o">*</span> <span class="mf">1.e8</span>  <span class="c1"># go from cm/s -&gt; AA/s</span>
+
+<span class="c1"># import time</span>
+
+
+        
+<div class="viewcode-block" id="FitEmissionLines2D"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D">[docs]</a><span class="k">class</span> <span class="nc">FitEmissionLines2D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fit the kinematics of a 2D spectrum, using a set of lines.</span>
+<span class="sd">    </span>
+<span class="sd">    Define a spectrum made of multiple linesets set of emission lines and profiles for 2D spectra of a single lineset </span>
+<span class="sd">        (eg, Ha, OIII doublet, ...)</span>
+<span class="sd">        </span>
+<span class="sd">    Input:</span>
+<span class="sd">        galaxy              galaxy class</span>
+<span class="sd">            Needs to have structural parameters:</span>
+<span class="sd">                n, q, R_E (arcsec), delt_PA (calculated as part of fit_prep_calc </span>
+<span class="sd">                                              from inst+gal+spec2D angles)</span>
+<span class="sd">            spec1D          1D spectrum for the galaxy</span>
+<span class="sd">            spec2D          2D spectrum for the galaxy</span>
+<span class="sd">            pstamp          pstamp image of the galaxy</span>
+<span class="sd">            Note: spec2D.instrument_resolution should be in km/s</span>
+<span class="sd">            </span>
+<span class="sd">        instrument:</span>
+<span class="sd">            spectrograph. Needs</span>
+<span class="sd">                instrument_resolution [km/s]</span>
+<span class="sd">                PSF_FWHM [arcsec]</span>
+<span class="sd">                pixscale [arcsec/pixel]</span>
+<span class="sd">                </span>
+<span class="sd">        instrument_img:</span>
+<span class="sd">            imaging instrument. Needs</span>
+<span class="sd">                PA of imaging (for getting misalignment angles)</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">        linegroup_name         name of line group to fit </span>
+<span class="sd">                                (eg, &#39;Halpha&#39; is just Ha, &#39;OIII&#39; is the doublet)</span>
+<span class="sd">    Optional:</span>
+<span class="sd">        linenames_arr =         set of linenames for each group of lines </span>
+<span class="sd">        restwave_arr =          set of restwaves for each group of lines</span>
+<span class="sd">        flux_ratio_arr =        relative fluxes of lines to be used in model</span>
+<span class="sd">        trim_restwave_range =   restframe wavelength to trim the spectra for fitting</span>
+<span class="sd">        trim_wave_paramfile =   file with wavelength to trim the spectrum for fitting</span>
+<span class="sd">        del_obs_lam =           +- obs angstroms for optimizing z ; default = 20.</span>
+<span class="sd">        </span>
+<span class="sd">        kinProfile =            KinProfile class, containing info about generating .vel(r), .sigma(r)</span>
+<span class="sd">                                Fiducial: Arctan velocity + constant dispersion.</span>
+<span class="sd">                                          theta = [Va, rt, sigma0, m0shift, lam0]</span>
+<span class="sd">                                          </span>
+<span class="sd">                                          </span>
+<span class="sd">        intensityProfile =      IntensityProfile class, contains info about light dist for galaxy.</span>
+<span class="sd">                                Fiducial: Sersic + exponential taper vertically</span>
+<span class="sd">        </span>
+<span class="sd">    Will create model class</span>
+<span class="sd">         has subclass bestfit containing all the best-fit values + errors</span>
+<span class="sd">         </span>
+<span class="sd">    ***************</span>
+<span class="sd">    Initializing object ensures the fit preparation calculations are done on galaxy.spec2D</span>
+<span class="sd">        Can use trimmed spectrum + prepared calculations to determine **sane** theta bounds.</span>
+<span class="sd">    ***************</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># def __init__(self, galaxy, instrument, **kwargs):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument_img</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">linegroup_name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">linenames_arr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">restwave_arr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">kinProfile</span><span class="o">=</span><span class="n">KinProfileFiducial</span><span class="p">(),</span> 
+                    <span class="n">intensityProfile</span><span class="o">=</span><span class="n">IntensityProfileFiducial</span><span class="p">(</span><span class="n">Galaxy</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span><span class="n">q0</span><span class="o">=</span><span class="mf">0.19</span><span class="p">,</span><span class="n">re_arcsec</span><span class="o">=</span><span class="mf">0.</span><span class="p">)),</span> 
+                    <span class="n">kinModelOptions</span><span class="o">=</span><span class="n">KinModel2DOptions</span><span class="p">(),</span> 
+                    <span class="n">thetaPrior</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">thetaSettings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">mcmcOptions</span> <span class="o">=</span> <span class="n">MCMC2DOptions</span><span class="p">(),</span> 
+                    <span class="n">theta_linked_posteriors</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">mcmc_results</span> <span class="o">=</span> <span class="n">MCMCResults</span><span class="p">(),</span> 
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                    
+        <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span> <span class="o">=</span> <span class="n">galaxy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrument</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument_img</span> <span class="o">=</span> <span class="n">instrument_img</span>
+        
+        <span class="c1"># Store stuff about the lines that will be fit:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linegroup_name</span> <span class="o">=</span> <span class="n">linegroup_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="n">linenames_arr</span>   <span class="c1"># All lines to be included in 2D model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="n">restwave_arr</span>    <span class="c1"># Rest wavelengths of these lines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="n">flux_ratio_arr</span>  <span class="c1"># Relative flux strengths</span>
+        
+        <span class="c1"># Kinematic profile function. Fiducial takes 5 parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span> <span class="o">=</span> <span class="n">kinProfile</span>
+        
+        <span class="c1"># Intensity profile: Information about how the model light profile is generated</span>
+        <span class="c1">## # self.intensityProfile = IntensityProfileFiducial(galaxy=self.galaxy)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span> <span class="o">=</span> <span class="n">intensityProfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="p">)</span>  
+
+        
+        <span class="c1"># Options for model, to pass when kinModel is created:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span> <span class="o">=</span> <span class="n">kinModelOptions</span>
+        
+        <span class="c1"># Priors for model:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span> <span class="o">=</span> <span class="n">thetaPrior</span> 
+        
+        <span class="c1"># Parameter info:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span> <span class="o">=</span> <span class="n">thetaSettings</span>
+        
+        <span class="c1"># Options for MCMC fitting, including output filenames</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span> <span class="o">=</span> <span class="n">mcmcOptions</span>
+        
+        <span class="c1"># If set, an array of arrays giving indices of theta_fitting (ie, theta which vary)</span>
+        <span class="c1">#       for which best-fit should be calculated in multiD space.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_linked_posteriors</span> <span class="o">=</span> <span class="n">theta_linked_posteriors</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">mcmc_results</span> <span class="o">=</span> <span class="n">mcmc_results</span>     <span class="c1"># Class for holding MCMC resuls</span>
+        
+        
+        <span class="c1"># Kinematic model class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Holds results:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampler_dict</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Skip prep calcs: eg, fast creation for re-read of saved objects:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">skip_fit_prep_calcs</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Initializing trims the input 2D spectrum + calculates prep steps.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.setAttr"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.copy"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.setup"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">linenames_arr</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="c1"># set this from lib if not set:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="n">names_file</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_names_cat.dat&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="n">_io</span><span class="o">.</span><span class="n">read_line_names</span><span class="p">(</span><span class="n">names_file</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">linegroup_name</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">linenames_arr</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="n">wave_file</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_wavelengths_ratios.dat&#39;</span><span class="p">)</span>
+                <span class="n">waves_arr</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">linename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span><span class="p">:</span>
+                    <span class="n">waves_arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_io</span><span class="o">.</span><span class="n">read_restwave</span><span class="p">(</span><span class="n">wave_file</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">waves_arr</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">restwave_arr</span>
+            
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">)),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="n">wave_file</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_wavelengths_ratios.dat&#39;</span><span class="p">)</span>
+                <span class="n">line_ratio_arr</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">linename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span><span class="p">:</span>
+                    <span class="n">line_ratio_arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_io</span><span class="o">.</span><span class="n">read_line_ratio</span><span class="p">(</span><span class="n">wave_file</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">line_ratio_arr</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">flux_ratio_arr</span>
+        
+            
+        <span class="c1"># Setup spectrum:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">skip_fit_prep_calcs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">fit_prep_calcs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="FitEmissionLines2D.fit"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run the MCMC fitting. Requires input of class Theta2DSettings instance, </span>
+<span class="sd">            which handles the fitting parameters required for the kinProfile functions, </span>
+<span class="sd">            and with and additional, last two paramters as m0_shift and z.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Check:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">instrument_resolution</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+        
+        <span class="c1"># Setup model + priors, if not already specified</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_model</span><span class="p">()</span>
+        
+        <span class="c1"># Run emcee: also pass a pared</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">()</span>
+        
+        <span class="c1"># Do analysis on sampler + add other derived parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">analyze_results</span><span class="p">()</span>
+        
+        <span class="c1"># Save model to disk: entire fit2D to pickle</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_bestfit_model</span><span class="p">()</span>
+        
+        <span class="c1"># Plot results:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_results</span><span class="p">()</span></div>
+        
+        
+<div class="viewcode-block" id="FitEmissionLines2D.reload_results"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.reload_results">[docs]</a>    <span class="k">def</span> <span class="nf">reload_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">doPlot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">resave_bestfit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+                    <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reload results from files, without re-running</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">setup_model</span><span class="p">()</span>
+                            
+        <span class="bp">self</span><span class="o">.</span><span class="n">analyze_results</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">resave_bestfit</span><span class="p">:</span>
+            <span class="c1"># Save model to disk: entire fit2D to pickle</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_bestfit_model</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="n">doPlot</span><span class="p">:</span>
+            <span class="c1"># Plot results:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_results</span><span class="p">()</span></div>
+        
+        
+<div class="viewcode-block" id="FitEmissionLines2D.analyze_results"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.analyze_results">[docs]</a>    <span class="k">def</span> <span class="nf">analyze_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Analyze the MCMC results:</span>
+<span class="sd">            Calculations on sampler chain, plotting of best-fit values</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampler_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Save stuff to file, for future use:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">sampler_dict</span> <span class="o">=</span> <span class="n">_fit_io</span><span class="o">.</span><span class="n">load_pickle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_sampler</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_chain_results</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_bestfit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta_fitting</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="FitEmissionLines2D.plot_results"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.plot_results">[docs]</a>    <span class="k">def</span> <span class="nf">plot_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_param_corner</span><span class="p">()</span>        <span class="c1"># Show posterior distributions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_bestfit_model</span><span class="p">()</span>       <span class="c1"># Show bestfit 2D line model</span></div>
+            
+        
+<div class="viewcode-block" id="FitEmissionLines2D.make_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.make_model">[docs]</a>    <span class="k">def</span> <span class="nf">make_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Use methods in self.kinModel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">make_model</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="p">,</span> 
+                <span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.update_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.update_model">[docs]</a>    <span class="k">def</span> <span class="nf">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.setup_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.setup_model">[docs]</a>    <span class="k">def</span> <span class="nf">setup_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize model, parameters, + bounds.</span>
+<span class="sd">        Can be called independently of fit.</span>
+<span class="sd">        Need to set bounds for definiting initial walker positions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">## Initialize model handling class:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span> <span class="o">=</span> <span class="n">KinModel2D</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="p">,</span> 
+                        <span class="n">thetaSettings</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span><span class="p">),</span> 
+                        <span class="n">kinProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span><span class="p">,</span> 
+                        <span class="n">intensityProfile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span><span class="p">,</span>
+                        <span class="n">kinModelOptions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="p">)</span>
+                        
+
+        <span class="c1"># Setup priors, if not already set in beginning</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span> <span class="o">=</span> <span class="n">ThetaPriorFlat</span><span class="p">(</span><span class="n">theta</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta</span><span class="p">),</span>
+                                <span class="n">theta_vary</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">),</span>
+                                <span class="n">theta_bounds</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_bounds</span><span class="p">))</span>
+            
+        <span class="k">if</span> <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;ThetaPriorFlat&#39;</span><span class="p">)</span> <span class="o">&amp;</span> \
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_bounds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span><span class="o">.</span><span class="n">theta_bounds</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_bounds</span><span class="p">)</span>
+        
+        
+        <span class="c1">## Initialize parameters to be fit:</span>
+        <span class="n">theta_fitting_init</span> <span class="o">=</span> <span class="n">_fit_core</span><span class="o">.</span><span class="n">initialize_fitting_theta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_init</span><span class="p">,</span> 
+                                <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">)</span>
+                                
+        <span class="c1"># Save information about linking parameters for interpreting posterior distributions:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_linked_posteriors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span><span class="o">.</span><span class="n">theta_linked_posteriors</span>
+                                
+        <span class="c1">## Make an initial model:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_model</span><span class="p">(</span><span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting_init</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;fitEmis2D.kinModel.aperModel.sigma_floor_value={}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">sigma_floor_value</span><span class="p">))</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.run_mcmc"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.run_mcmc">[docs]</a>    <span class="k">def</span> <span class="nf">run_mcmc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_fit_core</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.get_chain_results"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.get_chain_results">[docs]</a>    <span class="k">def</span> <span class="nf">get_chain_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_fit_core</span><span class="o">.</span><span class="n">get_chain_results</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="FitEmissionLines2D.set_bestfit"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.set_bestfit">[docs]</a>    <span class="k">def</span> <span class="nf">set_bestfit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save a copy of the best-fit parameter model, including model, theta, theta_var</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_model</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">bestfit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.save_bestfit_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.save_bestfit_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_bestfit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pickle the entire fitEmis2D class to a pickle for restoring later.</span>
+<span class="sd">        May be *very large* depending on original data saved in the fitEmis2D class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Make the best-fit results class:</span>
+        
+        <span class="n">fitEmis2DResults</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_pruned_fitEmis2D_result_class</span><span class="p">()</span>
+        
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_bestfit_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">fitEmis2DResults</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_bestfit_model</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">))</span></div>
+            <span class="c1">#_pickle.dump(self, open(self.mcmcOptions.filename_bestfit_model, &quot;wb&quot;))</span>
+            
+            
+<div class="viewcode-block" id="FitEmissionLines2D.make_pruned_fitEmis2D_result_class"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.make_pruned_fitEmis2D_result_class">[docs]</a>    <span class="k">def</span> <span class="nf">make_pruned_fitEmis2D_result_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_img</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inst_img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument_img</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">inst_img</span> <span class="o">=</span> <span class="kc">None</span>
+            
+        <span class="n">fitEmis2DResults</span> <span class="o">=</span> <span class="n">FitEmissionLines2DResults</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                                <span class="n">instrument</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> 
+                                <span class="n">instrument_img</span><span class="o">=</span><span class="n">inst_img</span><span class="p">)</span>
+        
+        <span class="c1"># Copy over relevent attributes:</span>
+        <span class="c1"># for key in fitEmis2DResults.galaxy.__dict__.keys():</span>
+        <span class="c1">#     fitEmis2DResults.galaxy.__dict__[key] = _copy.deepcopy(self.galaxy.__dict__[key])</span>
+        
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="c1">#if key != &#39;galaxy&#39;:</span>
+            <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        
+        
+        <span class="c1"># Clean up a few things:</span>
+        <span class="k">del</span> <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">pstamp</span>
+        <span class="k">del</span> <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">spec_hdr</span>
+        
+        
+        <span class="k">return</span> <span class="n">fitEmis2DResults</span></div>
+            
+<div class="viewcode-block" id="FitEmissionLines2D.load_bestfit_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.load_bestfit_model">[docs]</a>    <span class="k">def</span> <span class="nf">load_bestfit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Restore pickled fitEmis2D class, including analysis calculations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_bestfit_model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># fitEmis2D = _pickle.load(open(self.mcmcOptions.filename_bestfit_model, &quot;rb&quot;))</span>
+            <span class="c1"># for k in fitEmis2D.__dict__.keys():</span>
+            <span class="c1">#     self.__dict__[k] = fitEmis2D.__dict__[k]</span>
+            <span class="n">fitEmis2DResults</span> <span class="o">=</span> <span class="n">_pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_bestfit_model</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">fitEmis2DResults</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+            
+<div class="viewcode-block" id="FitEmissionLines2D.plot_bestfit_model"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.plot_bestfit_model">[docs]</a>    <span class="k">def</span> <span class="nf">plot_bestfit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#if self.mcmcOptions.filename_plot_bestfit is not None:</span>
+        <span class="n">_misfit_plot</span><span class="o">.</span><span class="n">plot_bestfit_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="n">fileout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_bestfit</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="FitEmissionLines2D.plot_param_corner"><a class="viewcode-back" href="../../../api/misfit.FitEmissionLines2D.html#misfit.FitEmissionLines2D.plot_param_corner">[docs]</a>    <span class="k">def</span> <span class="nf">plot_param_corner</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1">#if self.mcmcOptions.filename_plot_param_corner is not None:</span>
+        <span class="n">_misfit_plot</span><span class="o">.</span><span class="n">plot_param_corner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="n">fileout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_param_corner</span><span class="p">,</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div></div>
+
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

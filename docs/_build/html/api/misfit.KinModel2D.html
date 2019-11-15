@@ -1,0 +1,255 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>KinModel2D &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="KinModel2DOptions" href="misfit.KinModel2DOptions.html" />
+    <link rel="prev" title="IntensityProfileSersicExpScale" href="misfit.IntensityProfileSersicExpScale.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="misfit.KinModel2DOptions.html" title="KinModel2DOptions">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="misfit.IntensityProfileSersicExpScale.html" title="IntensityProfileSersicExpScale">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../misfit/index.html" accesskey="U">misfit Documentation</a> &#187;</li>
+      
+      <li>KinModel2D</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="kinmodel2d">
+<h1>KinModel2D<a class="headerlink" href="#kinmodel2d" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="misfit.KinModel2D">
+<em class="property">class </em><code class="descclassname">misfit.</code><code class="descname">KinModel2D</code><span class="sig-paren">(</span><em>galaxy</em>, <em>thetaSettings=&lt;misfit.model.kin_classes.Theta2DSettingsFiducial object&gt;</em>, <em>kinProfile=&lt;misfit.model.kin_classes.KinProfileFiducial object&gt;</em>, <em>intensityProfile=&lt;misfit.model.kin_classes.IntensityProfileFiducial object&gt;</em>, <em>kinModelOptions=&lt;misfit.model.kin_model.KinModel2DOptions object&gt;</em>, <em>do_position_wave_shift=False</em>, <em>do_inst_res_conv_effective=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal"><span class="pre">object</span></code></a></p>
+<dl class="docutils">
+<dt>Class to handle kinematic fitting models.</dt>
+<dd>Handles variable + fixed parameters, talks to the Aper2DModel class, 
+creates scaled model to data.</dd>
+</dl>
+<p class="rubric">Methods Summary</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.copy" title="misfit.KinModel2D.copy"><code class="xref py py-obj docutils literal"><span class="pre">copy</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.make_3D_int_model" title="misfit.KinModel2D.make_3D_int_model"><code class="xref py py-obj docutils literal"><span class="pre">make_3D_int_model</span></code></a>([galaxy,&nbsp;instrument,&nbsp;...])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.make_model" title="misfit.KinModel2D.make_model"><code class="xref py py-obj docutils literal"><span class="pre">make_model</span></code></a>([galaxy,&nbsp;instrument,&nbsp;theta_fitting])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.model_chisq" title="misfit.KinModel2D.model_chisq"><code class="xref py py-obj docutils literal"><span class="pre">model_chisq</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.model_llike" title="misfit.KinModel2D.model_llike"><code class="xref py py-obj docutils literal"><span class="pre">model_llike</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.model_redchisq" title="misfit.KinModel2D.model_redchisq"><code class="xref py py-obj docutils literal"><span class="pre">model_redchisq</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.model_redchisq_no_weight" title="misfit.KinModel2D.model_redchisq_no_weight"><code class="xref py py-obj docutils literal"><span class="pre">model_redchisq_no_weight</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.model_redchisq_weight_ref" title="misfit.KinModel2D.model_redchisq_weight_ref"><code class="xref py py-obj docutils literal"><span class="pre">model_redchisq_weight_ref</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.scale_model" title="misfit.KinModel2D.scale_model"><code class="xref py py-obj docutils literal"><span class="pre">scale_model</span></code></a>(galaxy)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.setAttr" title="misfit.KinModel2D.setAttr"><code class="xref py py-obj docutils literal"><span class="pre">setAttr</span></code></a>(\*\*kwargs)</td>
+<td>Set/update arbitrary attribute list with <a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.update_3D_int_model" title="misfit.KinModel2D.update_3D_int_model"><code class="xref py py-obj docutils literal"><span class="pre">update_3D_int_model</span></code></a>([theta_fitting])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.update_model" title="misfit.KinModel2D.update_model"><code class="xref py py-obj docutils literal"><span class="pre">update_model</span></code></a>([theta_fitting])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.KinModel2D.update_parameters" title="misfit.KinModel2D.update_parameters"><code class="xref py py-obj docutils literal"><span class="pre">update_parameters</span></code></a>(theta_fitting)</td>
+<td>Unpack current fitting parameters into the whole parameter array</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.KinModel2D.update_profiles" title="misfit.KinModel2D.update_profiles"><code class="xref py py-obj docutils literal"><span class="pre">update_profiles</span></code></a>()</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="method">
+<dt id="misfit.KinModel2D.copy">
+<code class="descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.make_3D_int_model">
+<code class="descname">make_3D_int_model</code><span class="sig-paren">(</span><em>galaxy=None</em>, <em>instrument=None</em>, <em>theta_fitting=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.make_3D_int_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.make_3D_int_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.make_model">
+<code class="descname">make_model</code><span class="sig-paren">(</span><em>galaxy=None</em>, <em>instrument=None</em>, <em>theta_fitting=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.make_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.make_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.model_chisq">
+<code class="descname">model_chisq</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.model_chisq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.model_chisq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.model_llike">
+<code class="descname">model_llike</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.model_llike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.model_llike" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.model_redchisq">
+<code class="descname">model_redchisq</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.model_redchisq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.model_redchisq" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.model_redchisq_no_weight">
+<code class="descname">model_redchisq_no_weight</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.model_redchisq_no_weight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.model_redchisq_no_weight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.model_redchisq_weight_ref">
+<code class="descname">model_redchisq_weight_ref</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.model_redchisq_weight_ref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.model_redchisq_weight_ref" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.scale_model">
+<code class="descname">scale_model</code><span class="sig-paren">(</span><em>galaxy</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.scale_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.scale_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.setAttr">
+<code class="descname">setAttr</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.setAttr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.setAttr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set/update arbitrary attribute list with <a href="#id3"><span class="problematic" id="id4">**</span></a>kwargs</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.update_3D_int_model">
+<code class="descname">update_3D_int_model</code><span class="sig-paren">(</span><em>theta_fitting=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.update_3D_int_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.update_3D_int_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.update_model">
+<code class="descname">update_model</code><span class="sig-paren">(</span><em>theta_fitting=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.update_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.update_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.update_parameters">
+<code class="descname">update_parameters</code><span class="sig-paren">(</span><em>theta_fitting</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.update_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.update_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Unpack current fitting parameters into the whole parameter array</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.KinModel2D.update_profiles">
+<code class="descname">update_profiles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/model/kin_model.html#KinModel2D.update_profiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.KinModel2D.update_profiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">KinModel2D</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/misfit.KinModel2D.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

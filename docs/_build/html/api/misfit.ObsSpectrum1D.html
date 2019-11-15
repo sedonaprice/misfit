@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ObsSpectrum1D &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ObsSpectrum2D" href="misfit.ObsSpectrum2D.html" />
+    <link rel="prev" title="ObsSpectrum" href="misfit.ObsSpectrum.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li class="right">
+	<a href="misfit.ObsSpectrum2D.html" title="ObsSpectrum2D">
+	  next &raquo;
+	</a>
+      </li>
+      <li class="right">
+	<a href="misfit.ObsSpectrum.html" title="ObsSpectrum">
+	  &laquo; previous
+	</a>
+	 |
+      </li>
+      <li>
+	<a href="../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../misfit/index.html" accesskey="U">misfit Documentation</a> &#187;</li>
+      
+      <li>ObsSpectrum1D</li> 
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="obsspectrum1d">
+<h1>ObsSpectrum1D<a class="headerlink" href="#obsspectrum1d" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="misfit.ObsSpectrum1D">
+<em class="property">class </em><code class="descclassname">misfit.</code><code class="descname">ObsSpectrum1D</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum1D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum1D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="misfit.ObsSpectrum.html#misfit.ObsSpectrum" title="misfit.galaxy.ObsSpectrum"><code class="docutils literal"><span class="pre">misfit.ObsSpectrum</span></code></a></p>
+<p>Class to hold 1D spectra.</p>
+<p>Takes wave, flux, flux_err, spec_mask, extraction_spatial_profile (1D arrays) as input.</p>
+<dl class="docutils">
+<dt>Additionall attributes:</dt>
+<dd>band:            spectrum band name
+slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)</dd>
+<dt>Optional keywords: </dt>
+<dd>units_wave (default: &#8216;angstroms&#8217;)
+units_flux (default: &#8216;flam&#8217;)
+units_spatial (default: &#8216;arcsec&#8217;)</dd>
+</dl>
+<p class="rubric">Methods Summary</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum1D.load_basic_defaults" title="misfit.ObsSpectrum1D.load_basic_defaults"><code class="xref py py-obj docutils literal"><span class="pre">load_basic_defaults</span></code></a>(galaxy,&nbsp;\*\*kwargs)</td>
+<td>Set basic attributes after setting attributes</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#misfit.ObsSpectrum1D.mask_edges" title="misfit.ObsSpectrum1D.mask_edges"><code class="xref py py-obj docutils literal"><span class="pre">mask_edges</span></code></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#misfit.ObsSpectrum1D.trim_spectrum_wavelength" title="misfit.ObsSpectrum1D.trim_spectrum_wavelength"><code class="xref py py-obj docutils literal"><span class="pre">trim_spectrum_wavelength</span></code></a>(galaxy[,&nbsp;...])</td>
+<td>Method to trim the 1D spectrum to a given wavelength range.</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods Documentation</p>
+<dl class="method">
+<dt id="misfit.ObsSpectrum1D.load_basic_defaults">
+<code class="descname">load_basic_defaults</code><span class="sig-paren">(</span><em>galaxy</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum1D.load_basic_defaults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum1D.load_basic_defaults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set basic attributes after setting attributes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum1D.mask_edges">
+<code class="descname">mask_edges</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum1D.mask_edges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum1D.mask_edges" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="misfit.ObsSpectrum1D.trim_spectrum_wavelength">
+<code class="descname">trim_spectrum_wavelength</code><span class="sig-paren">(</span><em>galaxy</em>, <em>trim_restwave_range=None</em>, <em>trim_obswave_range=None</em>, <em>param_restwave_filename=None</em>, <em>linename=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/misfit/galaxy.html#ObsSpectrum1D.trim_spectrum_wavelength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#misfit.ObsSpectrum1D.trim_spectrum_wavelength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method to trim the 1D spectrum to a given wavelength range.
+Either input trim_restwave_range (and have galaxy.z set) to do in restframe,</p>
+<blockquote>
+<div>or   trim_obsframe_range  to trim in observed frame
+or   param_filename and linename  to read the set from a parameters file.</div></blockquote>
+<p>Returns a trimmed copy of self</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+<ul>
+<li><a class="reference internal" href="#">ObsSpectrum1D</a></li>
+</ul>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right">
+    <a href="../_sources/api/misfit.ObsSpectrum1D.rst.txt"
+       rel="nofollow">Page Source</a> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

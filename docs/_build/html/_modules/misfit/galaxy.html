@@ -1,0 +1,729 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>misfit.galaxy &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for misfit.galaxy</h1><div class="highlight"><pre>
+<span class="c1"># misfit/galaxy.py</span>
+<span class="c1"># General routines to have classes for MISFIT</span>
+<span class="c1"># </span>
+<span class="c1"># Copyright 2014, 2016, 2017 Sedona Price &lt;sedona.price@gmail.com&gt;.</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="c1"># Hidden modules prepended with &#39;_&#39;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">_pd</span>
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">_copy</span>
+<span class="kn">import</span> <span class="nn">os</span> <span class="k">as</span> <span class="nn">_os</span>
+<span class="kn">import</span> <span class="nn">sys</span> <span class="k">as</span> <span class="nn">_sys</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">general.general_utils</span> <span class="k">as</span> <span class="nn">_utils</span>
+    <span class="kn">import</span> <span class="nn">general.galaxy_utils</span> <span class="k">as</span> <span class="nn">_galaxy_utils</span>
+    <span class="kn">import</span> <span class="nn">general.io</span> <span class="k">as</span> <span class="nn">_io</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.general</span> <span class="k">import</span> <span class="n">general_utils</span> <span class="k">as</span> <span class="n">_utils</span>
+    <span class="kn">from</span> <span class="nn">.general</span> <span class="k">import</span> <span class="n">galaxy_utils</span> <span class="k">as</span> <span class="n">_galaxy_utils</span>
+    <span class="kn">from</span> <span class="nn">.general</span> <span class="k">import</span> <span class="n">io</span> <span class="k">as</span> <span class="n">_io</span>
+    
+<span class="kn">import</span> <span class="nn">astropy.constants</span> <span class="k">as</span> <span class="nn">_constants</span>
+<span class="n">c_cgs</span> <span class="o">=</span> <span class="n">_constants</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">cgs</span><span class="o">.</span><span class="n">value</span>
+<span class="n">c_AA</span> <span class="o">=</span> <span class="n">c_cgs</span> <span class="o">*</span> <span class="mf">1.e8</span>  <span class="c1"># go from cm/s -&gt; AA/s</span>
+
+
+<div class="viewcode-block" id="GalaxyBasic"><a class="viewcode-back" href="../../api/misfit.GalaxyBasic.html#misfit.GalaxyBasic">[docs]</a><span class="k">class</span> <span class="nc">GalaxyBasic</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic galaxy class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Results of Sersic fitting:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_mass_arcsec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_mass</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">q0</span> <span class="o">=</span> <span class="mf">0.19</span>          <span class="c1"># Assumed galaxy intrinsic thickness</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">delt_PA</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">generate_model</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># Set this to &#39;True&#39; if just generating a model of a galaxy</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GalaxyBasic.setAttr"><a class="viewcode-back" href="../../api/misfit.GalaxyBasic.html#misfit.GalaxyBasic.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="GalaxyBasic.copy"><a class="viewcode-back" href="../../api/misfit.GalaxyBasic.html#misfit.GalaxyBasic.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="GalaxyBasic.set_spectrum_2D"><a class="viewcode-back" href="../../api/misfit.GalaxyBasic.html#misfit.GalaxyBasic.set_spectrum_2D">[docs]</a>    <span class="k">def</span> <span class="nf">set_spectrum_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obsSpectrum2DBasic</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span> <span class="o">=</span> <span class="n">obsSpectrum2DBasic</span>
+
+       <span class="c1"># Ensure few basic things are loaded</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+       
+
+<div class="viewcode-block" id="Galaxy"><a class="viewcode-back" href="../../api/misfit.Galaxy.html#misfit.Galaxy">[docs]</a><span class="k">class</span> <span class="nc">Galaxy</span><span class="p">(</span><span class="n">GalaxyBasic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Galaxy class to contain information about spectra for MISFIT.</span>
+<span class="sd">    Usage:</span>
+<span class="sd">        gal = Galaxy(z=z, n=n, ....)</span>
+<span class="sd">        spec1D = ObsSpectrum1D(wave=wave_arr, flux=flux_arr, </span>
+<span class="sd">                                flux_err=flux_err_arr, </span>
+<span class="sd">                                spec_mask=mask_arr, </span>
+<span class="sd">                                units_wave=&#39;angstroms&#39;, units_flux=&#39;flam&#39;, </span>
+<span class="sd">                                extraction_method=&#39;optimal&#39; or &#39;boxcar&#39;,</span>
+<span class="sd">                                band=&#39;H&#39;)</span>
+<span class="sd">        gal.set_spectrum_1D(spec1D)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Galaxy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maskname</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">RA</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">DEC</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Stellar population modeling parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Av</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lmass</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lage</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ltau</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Info about star formation, SF regions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lsfr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Av_neb</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        
+        <span class="c1"># Results of Sersic fitting:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sersicRA</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sersicDEC</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sersicPA</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># PA of major axis ; CCW relative to y axis (up = 0deg, left=90deg)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_mass_arcsec</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_mass</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">q0</span> <span class="o">=</span> <span class="mf">0.19</span>          <span class="c1"># Assumed galaxy intrinsic thickness</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">delt_PA</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec1D</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pstamp</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">dither</span> <span class="o">=</span> <span class="kc">True</span>      <span class="c1"># Specify whether data was dithered (eg, neg images)</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="Galaxy.set_spectrum_1D"><a class="viewcode-back" href="../../api/misfit.Galaxy.html#misfit.Galaxy.set_spectrum_1D">[docs]</a>    <span class="k">def</span> <span class="nf">set_spectrum_1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obsSpectrum1D</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec1D</span> <span class="o">=</span> <span class="n">obsSpectrum1D</span>
+       
+       <span class="c1"># Ensure few basic things are loaded</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec1D</span><span class="o">.</span><span class="n">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="Galaxy.set_spectrum_2D"><a class="viewcode-back" href="../../api/misfit.Galaxy.html#misfit.Galaxy.set_spectrum_2D">[docs]</a>    <span class="k">def</span> <span class="nf">set_spectrum_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obsSpectrum2D</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span> <span class="o">=</span> <span class="n">obsSpectrum2D</span>
+       
+       <span class="c1"># Ensure few basic things are loaded</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="Galaxy.set_pstamp"><a class="viewcode-back" href="../../api/misfit.Galaxy.html#misfit.Galaxy.set_pstamp">[docs]</a>    <span class="k">def</span> <span class="nf">set_pstamp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pstamp</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pstamp</span> <span class="o">=</span> <span class="n">pstamp</span></div>
+        
+<div class="viewcode-block" id="Galaxy.calculate_slit_object_delta_PA"><a class="viewcode-back" href="../../api/misfit.Galaxy.html#misfit.Galaxy.calculate_slit_object_delta_PA">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_slit_object_delta_PA</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>    
+        <span class="sd">&quot;&quot;&quot;Calculate misalignment of galaxy within slit: store in galaxy&quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">calculate_slit_offset_angles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+
+        
+
+        
+
+<div class="viewcode-block" id="Spectrum"><a class="viewcode-back" href="../../api/misfit.Spectrum.html#misfit.Spectrum">[docs]</a><span class="k">class</span> <span class="nc">Spectrum</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic Spectrum class</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_err</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units_wave</span> <span class="o">=</span> <span class="s1">&#39;angstroms&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units_flux</span> <span class="o">=</span> <span class="s1">&#39;flam&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">=</span> <span class="s1">&#39;wave&#39;</span>   <span class="c1">#  wave / velocity</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="Spectrum.setAttr"><a class="viewcode-back" href="../../api/misfit.Spectrum.html#misfit.Spectrum.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>    </div>
+        
+<div class="viewcode-block" id="Spectrum.copy"><a class="viewcode-back" href="../../api/misfit.Spectrum.html#misfit.Spectrum.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+         
+<div class="viewcode-block" id="ObsSpectrum"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum.html#misfit.ObsSpectrum">[docs]</a><span class="k">class</span> <span class="nc">ObsSpectrum</span><span class="p">(</span><span class="n">Spectrum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold observed spectra.</span>
+<span class="sd">            self.wave holds the observed wavelength array.</span>
+<span class="sd">    </span>
+<span class="sd">    Input:</span>
+<span class="sd">        band:            spectrum band name</span>
+<span class="sd">        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ObsSpectrum</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Set this within ObsSpectrum:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">slit_PA</span> <span class="o">=</span> <span class="kc">None</span>        <span class="c1"># Slit PA CCW relative to North (North = 0deg, East=90deg)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="ObsSpectrum.load_basic_defaults"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum.html#misfit.ObsSpectrum.load_basic_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set basic attributes after setting attributes&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">galaxy</span><span class="o">.</span><span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">==</span> <span class="s1">&#39;wave&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_restwave</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span><span class="p">))</span>   </div>
+            
+<div class="viewcode-block" id="ObsSpectrum.calculate_restwave"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum.html#misfit.ObsSpectrum.calculate_restwave">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_restwave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obswave</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wave</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">restwave</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wave</span><span class="o">/</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">galaxy</span><span class="o">.</span><span class="n">z</span><span class="p">)</span></div></div>
+        
+
+<div class="viewcode-block" id="ObsSpectrum1D"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum1D.html#misfit.ObsSpectrum1D">[docs]</a><span class="k">class</span> <span class="nc">ObsSpectrum1D</span><span class="p">(</span><span class="n">ObsSpectrum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold 1D spectra.</span>
+<span class="sd">    </span>
+<span class="sd">    Takes wave, flux, flux_err, spec_mask, extraction_spatial_profile (1D arrays) as input.</span>
+<span class="sd">    </span>
+<span class="sd">    Additionall attributes:</span>
+<span class="sd">        band:            spectrum band name</span>
+<span class="sd">        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)</span>
+<span class="sd">        </span>
+<span class="sd">    Optional keywords: </span>
+<span class="sd">        units_wave (default: &#39;angstroms&#39;)</span>
+<span class="sd">        units_flux (default: &#39;flam&#39;)</span>
+<span class="sd">        units_spatial (default: &#39;arcsec&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="nb">super</span><span class="p">(</span><span class="n">ObsSpectrum1D</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">extraction_method</span> <span class="o">=</span> <span class="s1">&#39;optimal&#39;</span>    <span class="c1"># Change to indicate how the 1D spectrum as extracted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extraction_spatial_profile</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">units_spatial</span><span class="o">=</span><span class="s1">&#39;arcsec&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">trim_obswave_range</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trim_restwave_range</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_mask_edge</span> <span class="o">=</span> <span class="mi">10</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="ObsSpectrum1D.load_basic_defaults"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum1D.html#misfit.ObsSpectrum1D.load_basic_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set basic attributes after setting attributes&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">galaxy</span><span class="o">.</span><span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">==</span> <span class="s1">&#39;wave&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_restwave</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span><span class="p">))</span></div>
+            
+        <span class="c1"># Mask missing data:</span>
+            
+<div class="viewcode-block" id="ObsSpectrum1D.trim_spectrum_wavelength"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum1D.html#misfit.ObsSpectrum1D.trim_spectrum_wavelength">[docs]</a>    <span class="k">def</span> <span class="nf">trim_spectrum_wavelength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">trim_restwave_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                <span class="n">trim_obswave_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                <span class="n">param_restwave_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to trim the 1D spectrum to a given wavelength range.</span>
+<span class="sd">        Either input trim_restwave_range (and have galaxy.z set) to do in restframe, </span>
+<span class="sd">                or   trim_obsframe_range  to trim in observed frame</span>
+<span class="sd">                or   param_filename and linename  to read the set from a parameters file.</span>
+<span class="sd">                </span>
+<span class="sd">        Returns a trimmed copy of self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">trim_spectrum_1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">trim_restwave_range</span><span class="o">=</span><span class="n">trim_restwave_range</span><span class="p">,</span> 
+                    <span class="n">trim_obswave_range</span><span class="o">=</span><span class="n">trim_obswave_range</span><span class="p">,</span> 
+                    <span class="n">param_restwave_filename</span><span class="o">=</span><span class="n">param_restwave_filename</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">)</span></div>
+        
+    <span class="c1">#</span>
+<div class="viewcode-block" id="ObsSpectrum1D.mask_edges"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum1D.html#misfit.ObsSpectrum1D.mask_edges">[docs]</a>    <span class="k">def</span> <span class="nf">mask_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">mask_edges_1D</span><span class="p">(</span><span class="n">spec</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">flux</span><span class="p">,</span> <span class="n">spec_err</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">flux_err</span><span class="p">,</span> 
+                    <span class="n">spec_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span><span class="p">,</span><span class="n">num_edge</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_mask_edge</span><span class="p">)</span></div></div>
+
+    
+        
+<span class="c1">#</span>
+<div class="viewcode-block" id="ObsSpectrum2DBasic"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2DBasic.html#misfit.ObsSpectrum2DBasic">[docs]</a><span class="k">class</span> <span class="nc">ObsSpectrum2DBasic</span><span class="p">(</span><span class="n">ObsSpectrum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold basic 2D spectra.</span>
+<span class="sd">    </span>
+<span class="sd">    Takes flux, flux_err, spec_mask, spec_weight (2D arrays),</span>
+<span class="sd">          wave (1D arrays) as input.</span>
+<span class="sd">          </span>
+<span class="sd">    Assumed shape: rows: spatial, columns: wavelength (eg, [ind_spatial, ind_wave])</span>
+<span class="sd">    </span>
+<span class="sd">    Optional keywords: </span>
+<span class="sd">        units_wave      (default: &#39;angstroms&#39;)</span>
+<span class="sd">        units_flux      (default: &#39;flam&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="nb">super</span><span class="p">(</span><span class="n">ObsSpectrum2DBasic</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="ObsSpectrum2DBasic.load_basic_defaults"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2DBasic.html#misfit.ObsSpectrum2DBasic.load_basic_defaults">[docs]</a>    <span class="k">def</span> <span class="nf">load_basic_defaults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set basic attributes after setting attributes&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="p">(</span><span class="n">galaxy</span><span class="o">.</span><span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">==</span> <span class="s1">&#39;wave&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_restwave</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div></div>
+
+
+
+
+<div class="viewcode-block" id="ObsSpectrum2D"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D">[docs]</a><span class="k">class</span> <span class="nc">ObsSpectrum2D</span><span class="p">(</span><span class="n">ObsSpectrum2DBasic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold 2D spectra.</span>
+<span class="sd">    </span>
+<span class="sd">    Takes flux, flux_err, spec_mask, spec_weight (2D arrays),</span>
+<span class="sd">          wave (1D arrays) as input.</span>
+<span class="sd">          </span>
+<span class="sd">    Additional attributes:</span>
+<span class="sd">        band:            spectrum band name</span>
+<span class="sd">        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)</span>
+<span class="sd">          </span>
+<span class="sd">    Assumed shape: rows: spatial, columns: wavelength (eg, [ind_spatial, ind_wave])</span>
+<span class="sd">    </span>
+<span class="sd">    Lines to be modeled+fit: at minimum, input:</span>
+<span class="sd">        linegroup_name              (eg, &#39;OIII&#39; to get OIII doublet)</span>
+<span class="sd">        </span>
+<span class="sd">        or else explicitly set:</span>
+<span class="sd">            linenames_arr</span>
+<span class="sd">            restwave_arr</span>
+<span class="sd">            flux_ratio_arr</span>
+<span class="sd">    </span>
+<span class="sd">    Optional keywords: </span>
+<span class="sd">        units_wave      (default: &#39;angstroms&#39;)</span>
+<span class="sd">        units_flux      (default: &#39;flam&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="c1"># ObsSpectrum.__init__(self,None,None,None, None)</span>
+        <span class="c1"># #self.setAttr( **kwargs)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ObsSpectrum2D</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># # Also setup some of the unique parts of 2D spectra:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dlam</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># # Also setup some of the unique parts of 2D spectra needed for MISFIT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m0</span> <span class="o">=</span> <span class="kc">None</span>         <span class="c1"># Center of spatial profile, in pixel units</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">m_lims</span> <span class="o">=</span> <span class="kc">None</span>     <span class="c1"># Bounds of spatial profile, in pixels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lam0</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># Central *observed* line wavelength of ref line</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ypos</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># Position of galaxy ; eg center of 1D extraction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yoffset</span> <span class="o">=</span> <span class="mf">0.</span>      <span class="c1"># Offset of object postion from center of slit (arcsec)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_width</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1"># Rough extent of 2D spectrum ; eg from 1D extraction</span>
+        
+        <span class="c1"># Also needs weight array:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_weight</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">median_flux_error</span> <span class="o">=</span> <span class="kc">None</span>              <span class="c1"># Median error level -- to determine skylines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff</span> <span class="o">=</span> <span class="kc">None</span>                    <span class="c1"># Multiplicative factor by median err for skyline cut</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_units</span> <span class="o">=</span> <span class="s1">&#39;timesMedianErr&#39;</span>  <span class="c1"># Units of mult factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wh_sky</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wh_nosky</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wh_sky_fit</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">prepared_for_fitting</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_continuum_subtraction</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">row_snr_cut</span> <span class="o">=</span> <span class="mf">2.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">low_snr_row_inds</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_qual</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_sky</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_low_snr</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        
+        <span class="c1"># Option for weighting spectrum when fitting:</span>
+        <span class="c1">##   Options:  &#39;up-edges&#39;, &#39;none&#39;, &#39;optimal&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weighting_type</span> <span class="o">=</span> <span class="s1">&#39;up-edges&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitting_weight_profile</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fitting_weight_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        
+        <span class="c1"># Lines to be fit:</span>
+        <span class="c1"># Define fitting ranges or filenames from which to read them</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linegroup_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">trim_obswave_range</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trim_restwave_range</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave_full_range_rest</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave_line_range_rest</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_lines_wave_range_rest</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">linenames_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave_full_range_rest_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wave_line_range_rest_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_lines_wave_range_rest_param_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        
+<div class="viewcode-block" id="ObsSpectrum2D.fit_prep_calcs"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.fit_prep_calcs">[docs]</a>    <span class="k">def</span> <span class="nf">fit_prep_calcs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prepare a copy ObsSpectrum2D class which holds the input spec2D, </span>
+<span class="sd">        then subtract continuum, mask, and trim spec2D for fitting.</span>
+<span class="sd">        </span>
+<span class="sd">        At minimum, input linegroup_name (eg, &#39;OIII&#39; to get OIII doublet)</span>
+<span class="sd">        </span>
+<span class="sd">        Either input linenames_arr (to read all line ranges, etc) from default MISFIT param file, </span>
+<span class="sd">                or input explicit parameter filenames + linenames_arr</span>
+<span class="sd">                or directly input</span>
+<span class="sd">                trim_restwave_range (and have galaxy.z set) to do in restframe, </span>
+<span class="sd">                    or   trim_obsframe_range  to trim in observed frame</span>
+<span class="sd">                    or   param_filename and linename  to read the set from a parameters file.</span>
+<span class="sd">                </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Update keywords, etc:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepared_for_fitting</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_lineset</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_skylevels</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialize_derived_variables</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+            <span class="c1">###########</span>
+            <span class="c1"># if not self.generate_model:</span>
+            <span class="c1">#     self.subtract_continuum(galaxy)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subtract_continuum</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">no_cont_subtraction</span><span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">no_continuum_subtraction</span><span class="p">)</span>
+        
+            <span class="c1">###########</span>
+            <span class="c1"># Trim in wavelength:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trim_spectrum_wavelength</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> 
+                        <span class="n">trim_restwave_range</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wave_line_range_rest</span><span class="p">,</span> 
+                        <span class="n">param_restwave_filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">wave_line_range_rest_param_filename</span><span class="p">,</span> 
+                        <span class="n">linename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+            <span class="c1">###########</span>
+            <span class="c1"># Get skyline mask for full line+cont range:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_skyline_mask</span><span class="p">(</span><span class="n">full</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># if not self.generate_model:</span>
+            <span class="c1">#     self.get_skyline_mask(full=True)</span>
+            <span class="c1"># else:</span>
+            <span class="c1">#     self.mask_sky = _np.ones(self.flux.shape)</span>
+            <span class="c1">#     self.wh_sky = []</span>
+            <span class="c1">#     self.wh_nosky = _np.arange(self.flux.shape[1])</span>
+            <span class="c1">#     self.wh_sky_fit = []</span>
+                
+        
+            <span class="c1">###########</span>
+            <span class="c1"># Get inds for row with low S/N</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_low_snr_mask</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="n">galaxy</span><span class="o">.</span><span class="n">debug</span><span class="p">)</span>
+            <span class="c1"># Combine full mask: missing + sky + low S/N</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_low_snr</span>
+        
+        
+            <span class="c1">###########</span>
+            <span class="c1"># Trim vertically: identify yposition and bounding pixel indices:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trim_spectrum_spatial</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">)</span>
+        
+            <span class="c1">##########</span>
+            <span class="c1"># Determine weighting for fitting:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_fit_weights</span><span class="p">()</span>
+        
+            <span class="c1">##########</span>
+            <span class="c1"># Calculate deltPA of galaxy major axis within slit</span>
+            <span class="k">if</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">delt_PA</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">galaxy</span><span class="o">.</span><span class="n">calculate_slit_object_delta_PA</span><span class="p">()</span>
+            
+            <span class="c1">##########</span>
+            <span class="c1"># Calculate m0_shift, lam0 for fitting if they&#39;re fixed:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_m0_lam0_pos</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+            
+            <span class="c1"># Note that this is completed</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prepared_for_fitting</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># Make sure galaxy is updated:</span>
+        <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span> <span class="o">=</span> <span class="bp">self</span></div>
+    
+    
+<div class="viewcode-block" id="ObsSpectrum2D.initialize_derived_variables"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.initialize_derived_variables">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_derived_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dlam</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">wave</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># Should have set instrument.instrument_resolution: vel disp [km/s]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lam0</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec_type</span> <span class="o">==</span> <span class="s1">&#39;wave&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lam0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="mf">1.</span><span class="o">+</span><span class="n">galaxy</span><span class="o">.</span><span class="n">z</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ObsSpectrum2D.initialize_lineset"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.initialize_lineset">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_lineset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Read in the set of lines from the line group, if not set</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_param_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">linenames_param_filename</span>  <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_names_cat.dat&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="n">_io</span><span class="o">.</span><span class="n">read_line_names</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_param_filename</span><span class="p">,</span> 
+                            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">linegroup_name</span><span class="p">)</span>
+
+        <span class="c1"># Read the wavelength of the target lines:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_wavelengths_ratios.dat&#39;</span><span class="p">)</span>
+            <span class="n">wave_arr</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">linename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span><span class="p">:</span>
+                <span class="n">wave_arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_io</span><span class="o">.</span><span class="n">read_restwave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">wave_arr</span><span class="p">)</span>
+
+        <span class="c1"># Read the line flux ratios:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;line_wavelengths_ratios.dat&#39;</span><span class="p">)</span>
+            <span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">linename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span><span class="p">:</span>
+                <span class="n">flux_ratio_arr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_io</span><span class="o">.</span><span class="n">read_line_ratio</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">restwave_param_filename</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">flux_ratio_arr</span><span class="p">)</span></div>
+        
+        
+<div class="viewcode-block" id="ObsSpectrum2D.initialize_skylevels"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.initialize_skylevels">[docs]</a>    <span class="k">def</span> <span class="nf">initialize_skylevels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Read in band_cutoff, if not set</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_param_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;lib&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_param_filename</span> <span class="o">=</span> <span class="n">_os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s1">&#39;band_sky_cutoff_mosfire.dat&#39;</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_units</span> <span class="o">=</span> \
+                    <span class="n">_io</span><span class="o">.</span><span class="n">read_skyline_band_cutoff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">band_cutoff_param_filename</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">)</span></div>
+                    
+                    
+<div class="viewcode-block" id="ObsSpectrum2D.get_skyline_mask"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.get_skyline_mask">[docs]</a>    <span class="k">def</span> <span class="nf">get_skyline_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_qual</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_qual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_sky</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wh_sky</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">wh_nosky</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">get_skyline_mask_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full</span><span class="o">=</span><span class="n">full</span><span class="p">)</span>
+        <span class="c1"># Don&#39;t use wh_sky for fitting:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wh_sky_fit</span> <span class="o">=</span> <span class="p">[]</span></div>
+    
+<div class="viewcode-block" id="ObsSpectrum2D.get_low_snr_mask"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.get_low_snr_mask">[docs]</a>    <span class="k">def</span> <span class="nf">get_low_snr_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_qual</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask_qual</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_mask</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_low_snr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">low_snr_row_inds</span> <span class="o">=</span> \
+                            <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">get_low_snr_mask_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                                                <span class="n">snr_cut</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">row_snr_cut</span><span class="p">,</span>
+                                                <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ObsSpectrum2D.subtract_continuum"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.subtract_continuum">[docs]</a>    <span class="k">def</span> <span class="nf">subtract_continuum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">no_cont_subtraction</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Subtract continuum from 2D spectrum, fixing slope of every row to that of 1D spectrum.</span>
+<span class="sd">        Requires wave, flux, flux_err, spec_weight</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">subtract_continuum_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> 
+                    <span class="n">no_cont_subtraction</span><span class="o">=</span><span class="n">no_cont_subtraction</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ObsSpectrum2D.trim_spectrum_wavelength"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.trim_spectrum_wavelength">[docs]</a>    <span class="k">def</span> <span class="nf">trim_spectrum_wavelength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">trim_restwave_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                <span class="n">trim_obswave_range</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                <span class="n">param_restwave_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to trim the 2D spectrum to a given wavelength range.</span>
+<span class="sd">        Either input trim_restwave_range (and have galaxy.z set) to do in restframe, </span>
+<span class="sd">                or   trim_obsframe_range  to trim in observed frame</span>
+<span class="sd">                or   param_filename and linename  to read the set from a parameters file.</span>
+<span class="sd">                </span>
+<span class="sd">        Returns a trimmed copy of self</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">trim_spectrum_2D_wavelength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> 
+                    <span class="n">trim_restwave_range</span><span class="o">=</span><span class="n">trim_restwave_range</span><span class="p">,</span> 
+                    <span class="n">trim_obswave_range</span><span class="o">=</span><span class="n">trim_obswave_range</span><span class="p">,</span> 
+                    <span class="n">param_restwave_filename</span><span class="o">=</span><span class="n">param_restwave_filename</span><span class="p">,</span> 
+                    <span class="n">linename</span><span class="o">=</span><span class="n">linename</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="n">inplace</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="ObsSpectrum2D.trim_spectrum_spatial"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.trim_spectrum_spatial">[docs]</a>    <span class="k">def</span> <span class="nf">trim_spectrum_spatial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Method to trim the 2D spectrum to a given spatial range -- in preparation for fitting.</span>
+<span class="sd">            Trim vertically: identify yposition and bounding pixel indices:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">trim_spectrum_2D_spatial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ObsSpectrum2D.calculate_fit_weights"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.calculate_fit_weights">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_fit_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine weighting for fitting -- eg, upweight edges if weighting_type=&#39;up-edges&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">calculate_2D_fit_weights</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ObsSpectrum2D.get_m0_lam0_pos"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.get_m0_lam0_pos">[docs]</a>    <span class="k">def</span> <span class="nf">get_m0_lam0_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine m0_shift, lam0 for fitting -- exact position, not rounded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">get_m0_lam0_pos_2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="ObsSpectrum2D.fit_emission_y_profile"><a class="viewcode-back" href="../../api/misfit.ObsSpectrum2D.html#misfit.ObsSpectrum2D.fit_emission_y_profile">[docs]</a>    <span class="k">def</span> <span class="nf">fit_emission_y_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">filename_plot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepared_for_fitting</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Spectrum must have continuum subtracted first, etc&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span> <span class="o">=</span> <span class="n">_galaxy_utils</span><span class="o">.</span><span class="n">fit_emission_y_profile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="p">,</span> <span class="n">filename_plot</span><span class="o">=</span><span class="n">filename_plot</span><span class="p">,</span> <span class="n">plot</span><span class="o">=</span><span class="n">plot</span><span class="p">)</span></div></div>
+        
+        
+        
+<div class="viewcode-block" id="Pstamp"><a class="viewcode-back" href="../../api/misfit.Pstamp.html#misfit.Pstamp">[docs]</a><span class="k">class</span> <span class="nc">Pstamp</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic Pstamp class</span>
+<span class="sd">    </span>
+<span class="sd">    Takes:</span>
+<span class="sd">        img_PA:         PA of image (y axis) CCW relative to North (North = 0deg, East=90deg)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pstamp</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pstamp_hdr</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Set this within Pstamp:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_PA</span> <span class="o">=</span> <span class="kc">None</span>     <span class="c1"># PA of image CCW relative to North (North = 0deg, East=90deg)</span>
+
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="Pstamp.setAttr"><a class="viewcode-back" href="../../api/misfit.Pstamp.html#misfit.Pstamp.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="c1">#self.__dict__.update(kwargs)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div></div>
+        
+    <span class="c1"># def rotate_pstamp(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;Implement eventually&quot;&quot;&quot;</span>
+    <span class="c1">#     pass</span>
+    <span class="c1">#     </span>
+    <span class="c1"># def convolve_FWHM(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;Implement eventually&quot;&quot;&quot;</span>
+    <span class="c1">#     pass</span>
+    <span class="c1">#     </span>
+    <span class="c1"># def downsample_pixscale(self, galaxy, instr):</span>
+    <span class="c1">#     &quot;&quot;&quot;Implement eventually&quot;&quot;&quot;</span>
+    <span class="c1">#     </span>
+    <span class="c1">#     pass</span>
+    <span class="c1">#     </span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

@@ -1,0 +1,884 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>misfit.fit.fit_core &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../../../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for misfit.fit.fit_core</h1><div class="highlight"><pre>
+<span class="c1"># Copyright 2016-2019 Sedona Price &lt;sedona.price@gmail.com&gt;.</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE</span>
+
+<span class="c1"># Some handling of MCMC / posterior distribution analysis inspired by speclens: </span>
+<span class="c1">#    https://github.com/mrgeorge/speclens/blob/master/speclens/fit.py</span>
+<span class="c1">#    Many thanks to Matt George for guidance/help in learning to implement MCMC</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_np</span>
+
+<span class="kn">import</span> <span class="nn">pickle</span> <span class="k">as</span> <span class="nn">_pickle</span>
+<span class="kn">import</span> <span class="nn">json</span> <span class="k">as</span> <span class="nn">_json</span>
+<span class="kn">from</span> <span class="nn">astropy.extern</span> <span class="k">import</span> <span class="n">six</span> <span class="k">as</span> <span class="n">_six</span>
+
+<span class="kn">import</span> <span class="nn">emcee</span>
+<span class="kn">import</span> <span class="nn">psutil</span>
+<span class="kn">import</span> <span class="nn">acor</span>
+
+<span class="kn">import</span> <span class="nn">copy</span> <span class="k">as</span> <span class="nn">_copy</span>
+
+<span class="kn">import</span> <span class="nn">time</span><span class="o">,</span> <span class="nn">datetime</span>
+
+
+<span class="kn">import</span> <span class="nn">misfit.general.general_utils</span> <span class="k">as</span> <span class="nn">_utils</span>
+<span class="kn">import</span> <span class="nn">misfit.plot</span> <span class="k">as</span> <span class="nn">_misfit_plot</span>
+<span class="kn">from</span> <span class="nn">misfit</span> <span class="k">import</span> <span class="n">GalaxyBasic</span><span class="p">,</span> <span class="n">ObsSpectrum2DBasic</span>
+<span class="kn">from</span> <span class="nn">misfit.model</span> <span class="k">import</span> <span class="n">KinModel2DOptions</span><span class="p">,</span> <span class="n">KinModel2D</span>
+<span class="kn">from</span> <span class="nn">misfit.model.kin_classes</span> <span class="k">import</span> <span class="n">KinProfileFiducial</span><span class="p">,</span> <span class="n">IntensityProfileFiducial</span><span class="p">,</span> <span class="n">ThetaPriorFlat</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">fit_io</span> <span class="k">as</span> <span class="nn">_fit_io</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">fit_io</span> <span class="k">as</span> <span class="n">_fit_io</span>
+<span class="c1">#import sys</span>
+<span class="c1">#from emcee.utils import MPIPool</span>
+
+<span class="k">class</span> <span class="nc">FitEmissionLines2DResults</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pared-down class with very basic fitEmis2D result attributes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># def __init__(self, galaxy, instrument, **kwargs):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument_img</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1">#  </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span> <span class="o">=</span> <span class="n">galaxy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrument</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instrument_img</span> <span class="o">=</span> <span class="n">instrument_img</span>
+        
+        <span class="c1"># Store stuff about the lines that will be fit:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linegroup_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linenames_arr</span> <span class="o">=</span> <span class="kc">None</span>   <span class="c1"># All lines to be included in 2D model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="kc">None</span>    <span class="c1"># Rest wavelengths of these lines</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Relative flux strengths</span>
+        
+        <span class="c1"># Kinematic profile function. Fiducial takes 5 parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinProfile</span> <span class="o">=</span> <span class="n">KinProfileFiducial</span><span class="p">()</span>
+        
+        <span class="c1"># Intensity profile: Information about how the model light profile is generated</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intensityProfile</span> <span class="o">=</span> <span class="n">IntensityProfileFiducial</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">galaxy</span><span class="p">)</span>
+        
+        <span class="c1"># Options for model, to pass when kinModel is created:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span> <span class="o">=</span> <span class="n">KinModel2DOptions</span><span class="p">()</span>
+        
+        <span class="c1"># Priors for model:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span> <span class="o">=</span> <span class="kc">None</span> 
+        
+        <span class="c1"># Parameter info:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Options for MCMC fitting, including output filenames</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mcmcOptions</span> <span class="o">=</span> <span class="n">MCMC2DOptions</span><span class="p">()</span>
+        
+        <span class="c1"># If set, an array of arrays giving indices of theta_fitting (ie, theta which vary)</span>
+        <span class="c1">#       for which best-fit should be calculated in multiD space.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_linked_posteriors</span> <span class="o">=</span> <span class="kc">None</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">mcmc_results</span> <span class="o">=</span> <span class="n">MCMCResults</span><span class="p">()</span>      <span class="c1"># Class for holding MCMC resuls</span>
+        
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+        
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        
+
+
+<span class="k">class</span> <span class="nc">FitEmissionLines2DBasic</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pared-down class with very basic fitEmis2D attributes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="c1"># Kinematic model class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Options for model, to pass when kinModel is created:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModelOptions</span> <span class="o">=</span> <span class="n">KinModel2DOptions</span><span class="p">()</span>
+        
+        <span class="c1"># Priors for model:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaPrior</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">thetaSettings</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+        
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">make_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Use methods in self.kinModel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">make_model</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="n">instrument</span><span class="p">,</span> 
+                    <span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">update_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">initialize_fitting_theta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">theta_vary</span><span class="p">):</span>
+    <span class="c1"># Initialize model:</span>
+    <span class="c1"># Get intial fitting values</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">theta_fitting_init</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">theta_fitting_init</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta_fitting_init</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            
+    <span class="k">return</span> <span class="n">theta_fitting_init</span>
+    
+
+<span class="k">def</span> <span class="nf">lnlike</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Define log likelihood for MCMC parameter exploration</span>
+<span class="sd">    Defined as lnlike = -chi^2_{reduced}</span>
+<span class="sd">    </span>
+<span class="sd">    Input:</span>
+<span class="sd">    theta_fitting, fitEmis2D object (has spectrum and model class)</span>
+<span class="sd">        taking model from fitEmis2D.kinModel.model</span>
+<span class="sd">        data from fitEmis2D.kinModel.aperModel.galaxy.spec2D</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Make model:</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">update_model</span><span class="p">(</span><span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span>
+    
+    <span class="n">llike</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">model_llike</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">llike</span>
+   
+<span class="k">def</span> <span class="nf">lnprob</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="c1"># Prior: defined in fitEmis2D. </span>
+    
+    <span class="n">ln_prior</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">thetaPrior</span><span class="o">.</span><span class="n">log_prior</span><span class="p">(</span><span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ln_prior</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">inf</span>
+    
+    <span class="n">ln_like</span> <span class="o">=</span> <span class="n">lnlike</span><span class="p">(</span><span class="n">theta_fitting</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="p">)</span>
+    <span class="n">ln_prob</span> <span class="o">=</span> <span class="n">ln_prior</span> <span class="o">+</span> <span class="n">ln_like</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ln_prob</span><span class="p">):</span>
+        <span class="c1"># Make sure the non-finite ln_prob is -Inf, for emcee handling</span>
+        <span class="n">ln_prob</span> <span class="o">=</span> <span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">inf</span>
+
+    <span class="k">return</span> <span class="n">ln_prob</span>
+    
+
+<span class="k">def</span> <span class="nf">run_mcmc</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">,</span> <span class="n">fitEmis2D_fit</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit, </span>
+<span class="sd">    a version of fitEmis2D that is very pared down, for faster copying+calculation.</span>
+<span class="sd">    Otherwise will crudely get rid of most things in these classes before calculation.</span>
+<span class="sd">    </span>
+<span class="sd">    However, if the fitEmis2D, galaxy, instrument class have lots of specially-defined attributes, </span>
+<span class="sd">        may want to fully setup model (eg, do fitEmis2D.setup_model(thetaSettings=thetaSettings)) </span>
+<span class="sd">        and then delete attributes </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># --------------------------------</span>
+    <span class="c1"># Setup for threading for emcee, if desired</span>
+    <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">psutil</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span><span class="o">*</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">cpuFrac</span><span class="p">))</span> 
+    <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">NoThread</span><span class="p">:</span>
+        <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span> <span class="o">=</span> <span class="mi">1</span>
+        
+    
+    <span class="c1"># --------------------------------</span>
+    <span class="k">if</span> <span class="n">fitEmis2D_fit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        
+        <span class="n">fitEmis2D_fit</span> <span class="o">=</span> <span class="n">make_pruned_fitEmis2D_class</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">)</span>
+    
+    
+    
+    <span class="c1"># --------------------------------</span>
+    <span class="c1"># Initialize walker starting positions</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_names</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span>
+            <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_names</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            
+    <span class="n">initial_pos</span> <span class="o">=</span> <span class="n">init_walker_pos</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">,</span> 
+                    <span class="n">nwalkers</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nWalkers</span><span class="p">)</span>
+    
+    
+    <span class="c1"># --------------------------------</span>
+    <span class="c1"># Initialize emcee sampler</span>
+        
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">emcee</span><span class="o">.</span><span class="n">EnsembleSampler</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nWalkers</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">,</span> 
+                                    <span class="n">lnprob</span><span class="p">,</span> 
+                                    <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">fitEmis2D_fit</span><span class="p">,),</span>
+                                    <span class="n">a</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">scale_param_a</span><span class="p">,</span> 
+                                    <span class="n">threads</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span><span class="p">)</span><span class="c1">#,</span>
+                                    <span class="c1">#pool=pool)</span>
+    
+    
+    <span class="c1"># --------------------------------</span>
+    <span class="c1"># Start log file</span>
+    <span class="k">with</span> <span class="n">_utils</span><span class="o">.</span><span class="n">file_or_stdout</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_log</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_log</span><span class="p">:</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;NoThread = {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">NoThread</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nCPUs: {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nSubpixels = {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">nSubpixels</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;PSF_type = {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">PSF</span><span class="o">.</span><span class="n">PSF_type</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;PSF yspace_dither_arc = {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">PSF</span><span class="o">.</span><span class="n">yspace_dither_arc</span><span class="p">))</span>
+        
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;NoThread = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">NoThread</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;nCPUs: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;nSubpixels = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">nSubpixels</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PSF_type = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">PSF</span><span class="o">.</span><span class="n">PSF_type</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PSF yspace_dither_arc = {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">PSF</span><span class="o">.</span><span class="n">yspace_dither_arc</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        
+        <span class="c1">################################################################</span>
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Run burn-in</span>
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nBurn</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Burn-in: </span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Start: {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()))</span>
+            
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="c1">####</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">initial_pos</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nBurn</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;k={:d}, time: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span> <span class="p">)</span>
+                <span class="n">pos</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">lnprob0</span><span class="o">=</span><span class="n">prob</span><span class="p">,</span> <span class="n">rstate0</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+            
+            
+            <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">elapsed</span> <span class="o">=</span> <span class="n">end</span><span class="o">-</span><span class="n">start</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">acor_time</span> <span class="o">=</span> <span class="p">[</span><span class="n">acor</span><span class="o">.</span><span class="n">acor</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">chain</span><span class="p">[:,:,</span><span class="n">jj</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">acor_time</span> <span class="o">=</span> <span class="s2">&quot;Undefined, chain did not converge&quot;</span>
+            
+            
+            <span class="c1">#######################################################################################</span>
+            <span class="c1"># Return Burn-in info</span>
+            <span class="c1"># ****</span>
+            
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;End: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;******************&#39;</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nCPU, nParam, nWalker, nBurn = {}, {}, {}, {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span><span class="p">,</span>
+                            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">,</span>
+                            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nWalkers</span><span class="p">,</span>
+                            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nBurn</span><span class="p">))</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;keys={} </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span> 
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Scale param a= {} </span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">scale_param_a</span><span class="p">))</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Time= {:3.2f} (sec), {:3.0f}:{:3.2f} (m:s) </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="p">),</span> 
+                                <span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="p">))</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Mean acceptance fraction: {:0.3f} </span><span class="se">\n</span><span class="s2"> &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">)))</span>
+            
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Ideal acceptance frac: 0.2 - 0.5 </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Autocorrelation time:</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Acor est: &quot;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">acor_time</span><span class="p">))</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;******************</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            <span class="n">nBurn_nEff</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nBurn</span> <span class="o">&lt;</span> <span class="n">_np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">acor_time</span><span class="p">)</span> <span class="o">*</span> <span class="n">nBurn_nEff</span><span class="p">:</span>
+                    <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#################</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nBurn is less than {}*acorr time </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nBurn_nEff</span><span class="p">))</span>
+                    <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#################</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="c1"># Give warning if the burn-in is less than say 2-3 times the autocorr time</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#################</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;acorr time undefined -&gt; can&#39;t check convergence</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;#################</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                
+            
+            <span class="c1">##########################################</span>
+            <span class="c1">##########################################</span>
+            <span class="c1">##########################################</span>
+            <span class="c1"># --------------------------------</span>
+            <span class="c1"># Plot burn-in trace, if output file set</span>
+            <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_trace_burnin</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">sampler_dict_burnin</span> <span class="o">=</span> <span class="n">_fit_io</span><span class="o">.</span><span class="n">make_emcee_sampler_dict</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="p">,</span> <span class="n">nBurn</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">_misfit_plot</span><span class="o">.</span><span class="n">plot_trace</span><span class="p">(</span><span class="n">sampler_dict_burnin</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="p">,</span> 
+                                <span class="n">fileout</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_trace_burnin</span><span class="p">)</span>
+            <span class="c1">##########################################</span>
+            <span class="c1">##########################################</span>
+            <span class="c1">##########################################</span>
+            
+            <span class="c1"># Reset sampler after burn-in:</span>
+            <span class="n">sampler</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+            
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># --------------------------------</span>
+            <span class="c1"># No burn-in: set initial position:</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">initial_pos</span><span class="p">)</span>
+            <span class="n">prob</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+            
+        <span class="c1">#######################################################################################</span>
+        <span class="c1"># ****</span>
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Run sampler: Get start time</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Ensemble sampling:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Start: {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()))</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Run sampler: output info at each step</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nSteps</span><span class="p">):</span>
+            <span class="n">pos_cur</span> <span class="o">=</span> <span class="n">pos</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>    <span class="c1"># copy just in case things are set strangely</span>
+            
+            <span class="c1"># --------------------------------</span>
+            <span class="c1"># Only do one step at a time.</span>
+            <span class="n">pos</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">pos_cur</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">lnprob0</span><span class="o">=</span><span class="n">prob</span><span class="p">,</span> <span class="n">rstate0</span><span class="o">=</span><span class="n">state</span><span class="p">)</span>
+            <span class="c1"># --------------------------------</span>
+            
+            <span class="c1"># --------------------------------</span>
+            <span class="c1"># Give output info about this step:</span>
+            <span class="nb">print</span><span class="p">(</span> <span class="s2">&quot;ii={:d}, a_frac={:0.4f}, time: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">),</span>
+                            <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span> <span class="p">)</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">acor_time</span> <span class="o">=</span> <span class="p">[</span><span class="n">acor</span><span class="o">.</span><span class="n">acor</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">chain</span><span class="p">[:,:,</span><span class="n">jj</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+                <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;{:d}: acor_time = {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">,</span>  <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">acor_time</span><span class="p">)</span> <span class="p">)</span> <span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+                <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; {}: Chain too short for acor to run&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="p">)</span> <span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">acor_time</span> <span class="o">=</span> <span class="kc">None</span>
+                
+            <span class="c1"># --------------------------------</span>
+            <span class="c1"># Case: test for convergence and truncate early:</span>
+            <span class="c1"># Criteria checked: whether acceptance fraction within (minAF, maxAF), </span>
+            <span class="c1">#                   and whether total number of steps &gt; nEff * average autocorrelation time:</span>
+            <span class="c1">#                   to make sure the paramter space is well explored.</span>
+            <span class="k">if</span> <span class="p">(</span> <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">minAF</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">maxAF</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nEff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="n">acor_time</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="p">((</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">minAF</span> <span class="o">&lt;</span> <span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">maxAF</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="ow">not</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">runAllSteps</span><span class="p">)</span> <span class="o">&amp;</span> \
+                    <span class="p">(</span><span class="n">ii</span> <span class="o">&gt;</span> <span class="n">_np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">acor_time</span><span class="p">)</span> <span class="o">*</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nEff</span><span class="p">)</span> <span class="p">):</span>
+                    <span class="k">if</span> <span class="n">ii</span> <span class="o">==</span> <span class="n">acor_force_min</span><span class="p">:</span>
+                        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; Enforced min step limit: {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">ii</span> <span class="o">&gt;=</span> <span class="n">acor_force_min</span><span class="p">:</span>
+                        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot; Finishing calculations early at step {}.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+                        <span class="k">break</span>
+        
+            
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Check if it converged before the max number of steps</span>
+        <span class="n">finishedSteps</span><span class="o">=</span> <span class="n">ii</span><span class="o">+</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">finishedSteps</span> <span class="o">==</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nSteps</span><span class="p">)</span> <span class="o">&amp;</span> \
+            <span class="p">(</span> <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">minAF</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">maxAF</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="o">&amp;</span> \
+                <span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nEff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="p">)</span> <span class="o">&amp;</span> \
+               <span class="p">(</span><span class="ow">not</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">runAllSteps</span><span class="p">):</span>
+            <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Caution: no convergence within nSteps.&quot;</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+            
+            
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Finishing info for fitting:</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">end</span><span class="o">-</span><span class="n">start</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Finished {} steps&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">finishedSteps</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">acor_time</span> <span class="o">=</span> <span class="p">[</span><span class="n">acor</span><span class="o">.</span><span class="n">acor</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">chain</span><span class="p">[:,:,</span><span class="n">jj</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">dim</span><span class="p">)]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">acor_time</span> <span class="o">=</span> <span class="s2">&quot;Undefined, chain not converged&quot;</span>
+            
+        <span class="c1">#######################################################################################</span>
+        <span class="c1"># ***********</span>
+        <span class="c1"># Consider overall acceptance fraction</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;End: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;******************&#39;</span><span class="o">+</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;nCPU, nParam, nWalker, nSteps = {}, {}, {}, {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nCPUs</span><span class="p">,</span>
+                        <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">,</span> 
+                        <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nWalkers</span><span class="p">,</span> 
+                        <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">nSteps</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;keys={} </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span> 
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Scale param a= {} </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">scale_param_a</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Time= {:3.2f} (sec), {:3.0f}:{:3.2f} (m:s) </span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="p">),</span> 
+                                        <span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">elapsed</span><span class="o">/</span><span class="mf">60.</span><span class="p">))</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Mean acceptance fraction: {:0.3f} </span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">sampler</span><span class="o">.</span><span class="n">acceptance_fraction</span><span class="p">)))</span>
+        
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Ideal acceptance frac: 0.2 - 0.5 </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>\
+        <span class="c1"># Autocorrelation time:</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Acor est: &quot;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">acor_time</span><span class="p">))</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">f_log</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;******************</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        
+        <span class="c1"># --------------------------------</span>
+        <span class="c1"># Save sampler, if output file set:</span>
+        <span class="c1">#   Burn-in is already cut by resetting the sampler at the beginning.</span>
+        
+        <span class="c1"># Get pickleable format:</span>
+        <span class="n">sampler_dict</span> <span class="o">=</span> <span class="n">_fit_io</span><span class="o">.</span><span class="n">make_emcee_sampler_dict</span><span class="p">(</span><span class="n">sampler</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="p">,</span> <span class="n">nBurn</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1">#pool.close()</span>
+        <span class="n">sampler</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_sampler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Save stuff to file, for future use:</span>
+            <span class="n">_fit_io</span><span class="o">.</span><span class="n">dump_pickle</span><span class="p">(</span><span class="n">sampler_dict</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_sampler</span><span class="p">)</span>
+            
+            
+        
+    <span class="c1">##########################################</span>
+    <span class="c1">##########################################</span>
+    <span class="c1">##########################################</span>
+    
+    <span class="c1"># --------------------------------</span>
+    <span class="c1"># Plot trace, if output file set</span>
+    <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_trace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_misfit_plot</span><span class="o">.</span><span class="n">plot_trace</span><span class="p">(</span><span class="n">sampler_dict</span><span class="p">,</span> <span class="n">fitEmis2D</span><span class="p">,</span> 
+                        <span class="n">fileout</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmcOptions</span><span class="o">.</span><span class="n">filename_plot_trace</span><span class="p">)</span>
+    
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span> <span class="o">=</span> <span class="n">sampler_dict</span>
+                                    
+    <span class="k">return</span> <span class="n">fitEmis2D</span>
+    
+
+<span class="k">def</span> <span class="nf">make_pruned_fitEmis2D_class</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="n">galaxy</span> <span class="o">=</span> <span class="n">GalaxyBasic</span><span class="p">()</span>
+    <span class="n">spec2D</span> <span class="o">=</span> <span class="n">ObsSpectrum2DBasic</span><span class="p">()</span>
+    
+    <span class="c1"># Initialize some needed keys:</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">flux_ratio_arr</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">lam0</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">m0</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">wh_nosky</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">restwave_arr</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">wave</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">spec2D</span><span class="o">.</span><span class="n">fitting_weight_matrix</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="c1"># Delete a few unneeded attribs</span>
+    <span class="k">del</span> <span class="n">spec2D</span><span class="o">.</span><span class="n">units_flux</span>
+    <span class="k">del</span> <span class="n">spec2D</span><span class="o">.</span><span class="n">units_wave</span>
+    <span class="k">del</span> <span class="n">spec2D</span><span class="o">.</span><span class="n">band</span>
+    <span class="k">del</span> <span class="n">spec2D</span><span class="o">.</span><span class="n">slit_PA</span>
+    
+    <span class="n">galaxy</span><span class="o">.</span><span class="n">set_spectrum_2D</span><span class="p">(</span><span class="n">spec2D</span><span class="p">)</span>
+    
+    <span class="n">instrument</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">instrument</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">instrument</span><span class="o">.</span><span class="n">instrument_name</span>
+    <span class="k">del</span> <span class="n">instrument</span><span class="o">.</span><span class="n">band</span>
+    
+    
+    <span class="n">fitEmis2D_fit</span> <span class="o">=</span> <span class="n">FitEmissionLines2DBasic</span><span class="p">()</span>
+    
+    <span class="c1"># Copy over relevent attributes of galaxy:</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;spec2D&#39;</span><span class="p">:</span>
+            <span class="n">galaxy</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    
+    <span class="c1"># Copy over relevent attributes of galaxy.spec2D:</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">spec2D</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            
+    <span class="c1"># Copy over relevent attributes of fitEmis2D_fit:</span>
+    <span class="n">whitelist_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;kinModelOptions&#39;</span><span class="p">,</span> <span class="s1">&#39;thetaPrior&#39;</span><span class="p">,</span><span class="s1">&#39;thetaSettings&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">whitelist_keys</span><span class="p">:</span>
+        <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+    
+    <span class="c1"># Initialize kinModel:</span>
+    <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span> <span class="o">=</span> <span class="n">KinModel2D</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> 
+                    <span class="n">thetaSettings</span><span class="o">=</span><span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">thetaSettings</span><span class="p">,</span> 
+                    <span class="n">kinProfile</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="p">),</span> 
+                    <span class="n">intensityProfile</span><span class="o">=</span><span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">intensityProfile</span><span class="p">),</span>
+                    <span class="n">kinModelOptions</span><span class="o">=</span><span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="p">)</span>
+    <span class="c1">#</span>
+    <span class="c1">## Initialize parameters to be fit:</span>
+    <span class="n">theta_fitting_init</span> <span class="o">=</span> <span class="n">initialize_fitting_theta</span><span class="p">(</span><span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_init</span><span class="p">,</span> 
+                            <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">)</span>
+                            
+    <span class="c1">## Make an initial model:</span>
+    <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">make_model</span><span class="p">(</span><span class="n">galaxy</span><span class="o">=</span><span class="n">galaxy</span><span class="p">,</span> <span class="n">instrument</span><span class="o">=</span><span class="n">instrument</span><span class="p">,</span> 
+                                <span class="n">theta_fitting</span><span class="o">=</span><span class="n">theta_fitting_init</span><span class="p">)</span>
+    
+    <span class="c1"># Delete a few unnecessary things after</span>
+    <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">thetaSettings</span>
+    <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModelOptions</span>
+    <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">theta_names_nice</span>
+    <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">aperModel</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">theta_names</span>
+    <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">thetaPrior</span><span class="o">.</span><span class="n">name</span>
+    
+    <span class="n">keys_kinmodel</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;kinModelOptions&#39;</span><span class="p">,</span> <span class="s1">&#39;kinProfile&#39;</span><span class="p">,</span> <span class="s1">&#39;intensityProfile&#39;</span><span class="p">,</span> 
+                        <span class="s1">&#39;bestfit&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_names_nice&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_names&#39;</span><span class="p">,</span> 
+                        <span class="s1">&#39;theta_init&#39;</span><span class="p">,</span><span class="s1">&#39;do_position_wave_shift&#39;</span><span class="p">]</span>
+    
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys_kinmodel</span><span class="p">:</span>
+        <span class="k">del</span> <span class="n">fitEmis2D_fit</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">__dict__</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    
+    
+    <span class="k">return</span> <span class="n">fitEmis2D_fit</span>
+    
+    
+    
+    
+<span class="k">def</span> <span class="nf">init_walker_pos</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nwalkers</span><span class="o">=</span><span class="mi">200</span><span class="p">):</span>
+    <span class="c1"># Initialize walker positions randomly within rough bounds: need theta_bounds to be set</span>
+    <span class="c1">#   even if it&#39;s infinite -- to define *something* to start.</span>
+    
+    <span class="n">param_range</span><span class="p">,</span> <span class="n">param_lower</span> <span class="o">=</span> <span class="n">_utils</span><span class="o">.</span><span class="n">range_arrs</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">)</span>
+    
+    <span class="n">pos</span> <span class="o">=</span> <span class="p">[</span><span class="n">_np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random_sample</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span><span class="o">*</span><span class="n">param_range</span> <span class="o">+</span> <span class="n">param_lower</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">nwalkers</span><span class="p">)]</span>
+    
+    <span class="k">return</span> <span class="n">pos</span>
+    
+    
+<span class="c1">#</span>
+<span class="k">def</span> <span class="nf">get_chain_results</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="c1"># Get V(R_E), V_2.2:</span>
+    <span class="n">fitEmis2D</span> <span class="o">=</span> <span class="n">add_v_re_22</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">)</span>
+    
+    <span class="n">fitEmis2D</span> <span class="o">=</span> <span class="n">get_param_posterior_bestfits</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">fitEmis2D</span>
+    
+<span class="c1">#</span>
+<span class="k">def</span> <span class="nf">add_v_re_22</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add velocity, dispersion at R_E and r_2.2 (eg, 2.2*r_s, or 2.2/1.67*R_E assuming n=1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModelOptions</span><span class="o">.</span><span class="n">absvalsigma</span><span class="p">:</span>
+        <span class="c1"># Take abs of dispersion chain values before continuing</span>
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">n_params</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ind_all</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">n_params</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">free_inds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="n">free_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                    <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">free_inds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">free_inds</span><span class="p">[</span><span class="n">ind_all</span><span class="p">]</span>
+            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">][:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> \
+                   <span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">][:,</span> <span class="n">ind</span><span class="p">])</span> 
+            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;chain&#39;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">]</span> <span class="o">=</span> \
+                   <span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;chain&#39;</span><span class="p">][:,</span> <span class="p">:,</span> <span class="n">ind</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+    
+    <span class="n">i_free</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">len_chain</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">theta_chain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta_chain</span><span class="p">,</span> 
+                                <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i_free</span><span class="p">]]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">theta_chain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">i_free</span><span class="p">]])</span>
+            <span class="n">i_free</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">theta_chain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta_chain</span><span class="p">,</span> 
+                            <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">len_chain</span><span class="p">)]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">theta_chain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">len_chain</span><span class="p">)])</span>
+    
+    
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">update_theta</span><span class="p">(</span><span class="n">theta_chain</span><span class="p">)</span>
+    
+    <span class="c1"># Sample at R_E, and at z=0.</span>
+    <span class="n">V_re_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">vel</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">re_mass_arcsec</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)])</span>
+    <span class="n">V_22_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">vel</span><span class="p">(</span><span class="mf">2.2</span><span class="o">/</span><span class="mf">1.676</span> <span class="o">*</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">re_mass_arcsec</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)])</span>
+    
+    <span class="n">flatchain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">V_re_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">flatchain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flatchain</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">V_22_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    
+    
+    <span class="c1"># Also add stuff about sigma: # Sample at R_E, and at z=0.</span>
+    <span class="n">sigma_re_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">sigma</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">re_mass_arcsec</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)])</span>
+    <span class="n">sigma_22_arr</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinProfile</span><span class="o">.</span><span class="n">sigma</span><span class="p">(</span><span class="mf">2.2</span><span class="o">/</span><span class="mf">1.676</span> <span class="o">*</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">galaxy</span><span class="o">.</span><span class="n">re_mass_arcsec</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)])</span>
+    
+    <span class="n">flatchain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flatchain</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">sigma_re_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">flatchain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flatchain</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">sigma_22_arr</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+    
+    
+    
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">flatchain</span>
+    
+    <span class="n">theta_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">theta_names_nice</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_names</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">theta_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_names</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">theta_names_nice</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">theta_names_nice</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    
+    <span class="c1"># Add the added stuff:</span>
+    <span class="n">theta_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;V_RE&#39;</span><span class="p">)</span>
+    <span class="n">theta_names_nice</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">r&#39;$V(R_E)$&#39;</span><span class="p">)</span>
+    <span class="n">theta_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;V_22&#39;</span><span class="p">)</span>
+    <span class="n">theta_names_nice</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">r&#39;$V_{2.2}$&#39;</span><span class="p">)</span>
+    
+    <span class="n">theta_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;sigma_RE&#39;</span><span class="p">)</span>
+    <span class="n">theta_names_nice</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">r&#39;$\sigma(R_E)$&#39;</span><span class="p">)</span>
+    <span class="n">theta_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;sigma_22&#39;</span><span class="p">)</span>
+    <span class="n">theta_names_nice</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">r&#39;$\sigma_{2.2}$&#39;</span><span class="p">)</span>
+    
+    
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">theta_names</span> <span class="o">=</span> <span class="n">theta_names</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">theta_names_nice</span> <span class="o">=</span> <span class="n">theta_names_nice</span>
+    
+    
+    <span class="k">return</span> <span class="n">fitEmis2D</span>
+
+<span class="c1">#</span>
+<span class="k">def</span> <span class="nf">get_param_posterior_bestfits</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">):</span>
+    <span class="n">samples</span> <span class="o">=</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    
+    <span class="c1"># Unpack MCMC samples: lower, upper 1, 2 sigma</span>
+    <span class="n">mcmc_limits</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="p">[</span><span class="mf">15.865</span><span class="p">,</span> <span class="mf">84.135</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mcmc_limits_2sig</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="p">[</span><span class="mf">2.275</span><span class="p">,</span> <span class="mf">97.725</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    
+    <span class="c1">## location of peaks of *marginalized histograms*</span>
+    <span class="c1">##      for each parameter</span>
+    <span class="n">mcmc_peak_hist</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">yb</span><span class="p">,</span> <span class="n">xb</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="n">bins</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+        <span class="n">wh_pk</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">yb</span> <span class="o">==</span> <span class="n">yb</span><span class="o">.</span><span class="n">max</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mcmc_peak_hist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">average</span><span class="p">([</span><span class="n">xb</span><span class="p">[</span><span class="n">wh_pk</span><span class="p">],</span> <span class="n">xb</span><span class="p">[</span><span class="n">wh_pk</span><span class="o">+</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="c1"># Compare w/ median of histogram: case of narrow peaks near edges:</span>
+        <span class="n">q50</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="mf">50.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">mcmc_peak_hist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">-</span><span class="n">q50</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">samples</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">-</span><span class="n">samples</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mf">0.15</span><span class="p">:</span>
+            <span class="c1"># if off by &gt; 15%: seed with q50 instead:</span>
+            <span class="n">mcmc_peak_hist</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">q50</span>
+    
+    <span class="c1">## Use max prob as guess to get peak value of gaussian KDE, to find &#39;best-fit&#39; of posterior: </span>
+    <span class="n">mcmc_peak_KDE</span> <span class="o">=</span> <span class="n">_utils</span><span class="o">.</span><span class="n">find_peak_gaussian_KDE</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">],</span> <span class="n">mcmc_peak_hist</span><span class="p">)</span>
+    
+    <span class="c1"># Set best-fit values</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta</span> <span class="o">=</span> <span class="n">mcmc_peak_KDE</span>
+    
+    <span class="n">mcmc_stack</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">mcmc_peak_KDE</span><span class="p">],</span> <span class="n">mcmc_limits</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Order: best fit value, lower 1sig bound, upper 1sig bound</span>
+    
+    <span class="n">mcmc_uncertainties_1sig</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> 
+                        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mcmc_stack</span><span class="p">)))))</span>
+    <span class="c1"># 1sig lower, upper uncertainty</span>
+    
+    <span class="n">mcmc_stack_2sig</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(([</span><span class="n">mcmc_peak_KDE</span><span class="p">],</span> <span class="n">mcmc_limits_2sig</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mcmc_uncertainties_2sig</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> 
+                        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mcmc_stack_2sig</span><span class="p">)))))</span>
+    
+    <span class="c1"># Set +- 1 sig uncertainties: lower, upper</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">err_theta_1sig</span> <span class="o">=</span> <span class="n">mcmc_uncertainties_1sig</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">err_theta_2sig</span> <span class="o">=</span> <span class="n">mcmc_uncertainties_2sig</span>
+    
+    <span class="c1">#############################################################################</span>
+    <span class="c1"># Recalculate some best-fit values for objects which should be analyzed together:</span>
+    <span class="c1">#       eg, theta_linked_posteriors.</span>
+    <span class="c1"># eg, for V_a and r_t mcmc based on best-fit value for V(R_E):</span>
+    <span class="k">if</span> <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">theta_linked_posteriors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mcmc_lims_zip</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mcmc_limits</span><span class="p">))</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">theta_linked_posteriors</span><span class="p">)):</span>
+            <span class="n">mcmc_peak</span><span class="p">,</span> <span class="n">mcmc_uncertainties_1sig</span> <span class="o">=</span> \
+                    <span class="n">_utils</span><span class="o">.</span><span class="n">get_bestfit_values_linked</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">,</span> 
+                    <span class="n">mcmc_uncertainties_1sig</span><span class="p">,</span> <span class="n">mcmc_lims_zip</span><span class="p">,</span>
+                    <span class="n">theta_linked_posteriors</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">theta_linked_posteriors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="c1">#, debug=True)</span>
+            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta</span> <span class="o">=</span> <span class="n">mcmc_peak</span>
+            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">err_theta_1sig</span> <span class="o">=</span> <span class="n">mcmc_uncertainties_1sig</span>
+            
+            <span class="n">mcmc_lims_zip</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">mcmc_limits_2sig</span><span class="p">))</span>
+            <span class="n">mcmc_peak</span><span class="p">,</span> <span class="n">mcmc_uncertainties_2sig</span> <span class="o">=</span> \
+                    <span class="n">_utils</span><span class="o">.</span><span class="n">get_bestfit_values_linked</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="p">,</span> 
+                    <span class="n">mcmc_uncertainties_2sig</span><span class="p">,</span> <span class="n">mcmc_lims_zip</span><span class="p">,</span>
+                    <span class="n">theta_linked_posteriors</span><span class="o">=</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">theta_linked_posteriors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="c1">#, debug=True)</span>
+            <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">err_theta_2sig</span> <span class="o">=</span> <span class="n">mcmc_uncertainties_2sig</span>
+    
+    <span class="c1">#############################################################################</span>
+    <span class="c1">## Get percent other sign:</span>
+    <span class="c1"># v_re_chain = fitEmis2D.sampler_dict[&#39;flatchain&#39;][:,-2].copy()</span>
+    <span class="c1"># vre_best = fitEmis2D.mcmc_results.bestfit_theta[-2]  </span>
+    <span class="c1"># v_re_chain *= _np.sign(vre_best)</span>
+    <span class="c1"># percent_oppsign = len(_np.where(v_re_chain &lt; 0.)[0])/_np.float(len(v_re_chain)) * 100.</span>
+    <span class="c1"># fitEmis2D.mcmc_results.percent_oppsign = percent_oppsign</span>
+    
+    <span class="c1"># For all params.</span>
+    <span class="n">opp_flatchain</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta</span><span class="p">)</span><span class="o">*</span>\
+                <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">sampler_dict</span><span class="p">[</span><span class="s1">&#39;flatchain&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">percent_oppsign</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta</span><span class="p">)):</span>
+        <span class="n">perct_opp</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">opp_flatchain</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">opp_flatchain</span><span class="p">[:,</span><span class="n">i</span><span class="p">]))</span> <span class="o">*</span> <span class="mf">100.</span>
+        <span class="n">percent_oppsign</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">percent_oppsign</span><span class="p">,</span> <span class="n">perct_opp</span><span class="p">)</span>
+        
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">percent_oppsign</span> <span class="o">=</span> <span class="n">percent_oppsign</span>
+    
+    
+    <span class="c1"># Clarify which were the free-parameter values:</span>
+    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta_fitting</span> <span class="o">=</span> \
+                    <span class="n">fitEmis2D</span><span class="o">.</span><span class="n">mcmc_results</span><span class="o">.</span><span class="n">bestfit_theta</span><span class="p">[:</span><span class="n">fitEmis2D</span><span class="o">.</span><span class="n">kinModel</span><span class="o">.</span><span class="n">n_free_param</span><span class="p">]</span>
+    
+    <span class="k">return</span> <span class="n">fitEmis2D</span>
+
+<div class="viewcode-block" id="MCMC2DOptions"><a class="viewcode-back" href="../../../api/misfit.MCMC2DOptions.html#misfit.MCMC2DOptions">[docs]</a><span class="k">class</span> <span class="nc">MCMC2DOptions</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold options for 2D MCMC fitting, including output filenames.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="c1"># Options for running MCMC:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpuFrac</span> <span class="o">=</span> <span class="mf">0.75</span>     <span class="c1"># Fraction of CPUs to use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nCPUs</span> <span class="o">=</span> <span class="kc">None</span>       <span class="c1"># Number of CPUs to use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nWalkers</span><span class="o">=</span><span class="mi">2000</span>      <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nSteps</span><span class="o">=</span><span class="mi">100</span>         <span class="c1"># fixed number of steps, or highest num of steps if using nEff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nBurn</span><span class="o">=</span><span class="mi">50</span>           <span class="c1"># Number of burn-in steps to run</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scale_param_a</span><span class="o">=</span><span class="mf">3.0</span>  <span class="c1"># emcee scale paramter a</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nEff</span><span class="o">=</span><span class="mi">10</span>            <span class="c1"># number of Acorr times to run, at minimum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minAF</span><span class="o">=</span><span class="mf">0.2</span>          <span class="c1"># Minimum acceptance fraction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxAF</span><span class="o">=</span><span class="mf">0.5</span>          <span class="c1"># Maximum   &quot;     &quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">NoThread</span><span class="o">=</span><span class="kc">False</span>     <span class="c1"># Option to not multithread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">runAllSteps</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Switch on to force run of all steps even if min,maxAF are specified</span>
+        
+        
+        <span class="c1"># Optional output filenames for MCMC:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_log</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_sampler</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_bestfit_model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_plot_trace_burnin</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_plot_trace</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_plot_param_corner</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename_plot_bestfit</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MCMC2DOptions.setAttr"><a class="viewcode-back" href="../../../api/misfit.MCMC2DOptions.html#misfit.MCMC2DOptions.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+    
+<div class="viewcode-block" id="MCMC2DOptions.copy"><a class="viewcode-back" href="../../../api/misfit.MCMC2DOptions.html#misfit.MCMC2DOptions.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+
+<div class="viewcode-block" id="MCMCResults"><a class="viewcode-back" href="../../../api/misfit.MCMCResults.html#misfit.MCMCResults">[docs]</a><span class="k">class</span> <span class="nc">MCMCResults</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to hold results from 2D MCMC fitting:</span>
+<span class="sd">        bestfit parameters, 1sigma bounds, 2 sigma bounds, etc</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bestfit_theta</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Order: lower, upper uncertainty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_theta_1sig</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">err_theta_2sig</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">percent_oppsign</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MCMCResults.setAttr"><a class="viewcode-back" href="../../../api/misfit.MCMCResults.html#misfit.MCMCResults.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div></div>
+    
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>

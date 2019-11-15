@@ -1,0 +1,443 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>misfit.model.kin_classes &#8212; misfit v0.0.dev34</title>
+    
+    <link rel="stylesheet" href="../../../_static/bootstrap-astropy.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.0.dev34',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script type="text/javascript" src="../../../_static/sidebar.js"></script>
+    <link rel="shortcut icon" href="../../../_static/astropy_logo.ico"/>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,600' rel='stylesheet' type='text/css'/>
+<script type="text/javascript" src="../../../_static/copybutton.js"></script>
+
+
+  </head>
+  <body role="document">
+<div class="topbar">
+  <a class="brand" title="Documentation Home" href="../../../index.html"><span id="logotext1">package</span><span id="logotext2">-template</span><span id="logotext3">:docs</span></a>
+  <ul>
+    <li><a class="homelink" title="Astropy Homepage" href="http://www.astropy.org"></a></li>
+    <li><a title="General Index" href="../../../genindex.html">Index</a></li>
+    <li><a title="Module Index" href="../../../py-modindex.html">Modules</a></li>
+    <li>
+      
+      
+<form action="../../../search.html" method="get">
+  <input type="text" name="q" placeholder="Search" />
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+      
+    </li>
+  </ul>
+</div>
+
+<div class="related">
+    <h3>Navigation</h3>
+    <ul>
+      <li>
+	<a href="../../../index.html">misfit v0.0.dev34</a>
+	 &#187;
+      </li>
+      <li><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+      
+       
+    </ul>
+</div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for misfit.model.kin_classes</h1><div class="highlight"><pre>
+<span class="c1"># Copyright 2017 Sedona Price &lt;sedona.price@gmail.com&gt;.</span>
+<span class="c1"># Licensed under a 3-clause BSD style license - see LICENSE.rst</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">_np</span>
+<span class="kn">from</span> <span class="nn">astropy.extern</span> <span class="k">import</span> <span class="n">six</span> <span class="k">as</span> <span class="n">_six</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">kin_functions</span> <span class="k">as</span> <span class="nn">_kfuncs</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">kin_functions</span> <span class="k">as</span> <span class="n">_kfuncs</span>
+
+
+<span class="k">class</span> <span class="nc">VelProfile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic class for velocity profiles. Setting up expected structure.</span>
+<span class="sd">    theta:          parameter array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+    
+    <span class="k">def</span> <span class="nf">vel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.</span><span class="o">*</span><span class="n">r</span>
+        
+    
+<span class="k">class</span> <span class="nc">DispProfile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Basic class for velocity dispersion profiles. Setting up expected structure.</span>
+<span class="sd">    theta:          parameter array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+    
+    <span class="k">def</span> <span class="nf">sigma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.</span><span class="o">*</span><span class="n">r</span>
+    
+    
+<span class="k">class</span> <span class="nc">VelArctanProfile</span><span class="p">(</span><span class="n">VelProfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Arctan velocity profile. Parameters are:</span>
+<span class="sd">        theta = [V_a, r_t]</span>
+<span class="sd">                V_a:    asymptotic velocity [km/s]</span>
+<span class="sd">                r_t:    turnover radius     [arcsec]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VelArctanProfile</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Theta:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;VelArctanProfile&#39;</span>
+        
+    <span class="k">def</span> <span class="nf">vel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">2.</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">_np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span> <span class="n">r</span> <span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_np</span><span class="o">.</span><span class="n">inf</span>
+
+
+<span class="k">class</span> <span class="nc">DispConstProfile</span><span class="p">(</span><span class="n">DispProfile</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Constant velocity dispersion profile. Parameters are:</span>
+<span class="sd">        theta = [sigma0]</span>
+<span class="sd">                sigma0:    velocity dispersion [km/s]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DispConstProfile</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Theta:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;DispConstProfile&#39;</span>
+        
+    <span class="k">def</span> <span class="nf">sigma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.</span><span class="o">*</span><span class="n">r</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> 
+
+
+
+
+<div class="viewcode-block" id="KinProfile"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile">[docs]</a><span class="k">class</span> <span class="nc">KinProfile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_names_nice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                        <span class="n">velProfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dispProfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names</span> <span class="o">=</span> <span class="n">theta_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names_nice</span> <span class="o">=</span> <span class="n">theta_names_nice</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span> <span class="o">=</span> <span class="n">velProfile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span> <span class="o">=</span> <span class="n">dispProfile</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_profiles</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="KinProfile.setAttr"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+    
+<div class="viewcode-block" id="KinProfile.setup_profiles"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile.setup_profiles">[docs]</a>    <span class="k">def</span> <span class="nf">setup_profiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">n_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">n_params</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span></div>
+            
+        <span class="c1">#self.update_theta(self.theta)</span>
+            
+<div class="viewcode-block" id="KinProfile.update_theta"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile.update_theta">[docs]</a>    <span class="k">def</span> <span class="nf">update_theta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update theta for the velocity profile: </span>
+<span class="sd">            including splitting up vel, dispersion parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        
+        <span class="c1"># Distribute params based on input theta:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">n_params</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">n_params</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">n_params</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">n_params</span><span class="p">]</span></div>
+        
+<div class="viewcode-block" id="KinProfile.vel"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile.vel">[docs]</a>    <span class="k">def</span> <span class="nf">vel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="c1"># Units on r: arcsec</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span><span class="o">.</span><span class="n">vel</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span></div>
+                                
+<div class="viewcode-block" id="KinProfile.sigma"><a class="viewcode-back" href="../../../api/misfit.KinProfile.html#misfit.KinProfile.sigma">[docs]</a>    <span class="k">def</span> <span class="nf">sigma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span><span class="o">.</span><span class="n">sigma</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span></div></div>
+        
+        
+                                
+<div class="viewcode-block" id="KinProfileFiducial"><a class="viewcode-back" href="../../../api/misfit.KinProfileFiducial.html#misfit.KinProfileFiducial">[docs]</a><span class="k">class</span> <span class="nc">KinProfileFiducial</span><span class="p">(</span><span class="n">KinProfile</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">KinProfileFiducial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;VelArctanDispConstProfile&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">velProfile</span> <span class="o">=</span> <span class="n">VelArctanProfile</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispProfile</span> <span class="o">=</span> <span class="n">DispConstProfile</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_profiles</span><span class="p">()</span></div>
+        
+        
+<span class="c1">######################################</span>
+<div class="viewcode-block" id="IntensityProfile"><a class="viewcode-back" href="../../../api/misfit.IntensityProfile.html#misfit.IntensityProfile">[docs]</a><span class="k">class</span> <span class="nc">IntensityProfile</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">intProfile_r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">intProfile_z</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_r</span> <span class="o">=</span> <span class="n">intProfile_r</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_z</span> <span class="o">=</span> <span class="n">intProfile_z</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="IntensityProfile.setAttr"><a class="viewcode-back" href="../../../api/misfit.IntensityProfile.html#misfit.IntensityProfile.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div>
+        
+<div class="viewcode-block" id="IntensityProfile.update_values"><a class="viewcode-back" href="../../../api/misfit.IntensityProfile.html#misfit.IntensityProfile.update_values">[docs]</a>    <span class="k">def</span> <span class="nf">update_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_r</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_z</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="IntensityProfile.int"><a class="viewcode-back" href="../../../api/misfit.IntensityProfile.html#misfit.IntensityProfile.int">[docs]</a>    <span class="k">def</span> <span class="nf">int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r_perp</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_r</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">r_perp</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_z</span><span class="o">.</span><span class="n">int</span><span class="p">(</span><span class="n">z</span><span class="p">)</span> </div></div>
+        
+        
+        
+<div class="viewcode-block" id="IntensityProfileFiducial"><a class="viewcode-back" href="../../../api/misfit.IntensityProfileFiducial.html#misfit.IntensityProfileFiducial">[docs]</a><span class="k">class</span> <span class="nc">IntensityProfileFiducial</span><span class="p">(</span><span class="n">IntensityProfile</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntensityProfileFiducial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_r</span> <span class="o">=</span> <span class="n">IntProfileSersic</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_z</span> <span class="o">=</span> <span class="n">IntProfileExpZ</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span></div>
+        
+<span class="c1">#</span>
+
+<div class="viewcode-block" id="IntensityProfileSersicExpScale"><a class="viewcode-back" href="../../../api/misfit.IntensityProfileSersicExpScale.html#misfit.IntensityProfileSersicExpScale">[docs]</a><span class="k">class</span> <span class="nc">IntensityProfileSersicExpScale</span><span class="p">(</span><span class="n">IntensityProfile</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntensityProfileSersicExpScale</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_r</span> <span class="o">=</span> <span class="n">IntProfileSersic</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">intProfile_z</span> <span class="o">=</span> <span class="n">IntProfileExpZScale</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span></div>
+        
+        
+<span class="k">class</span> <span class="nc">IntProfileCompBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">re_arcsec</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span>
+        <span class="c1">#self.q = None</span>
+        <span class="c1">#self.delt_PA = None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span> <span class="o">=</span> <span class="n">re_arcsec</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gal_params</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span>
+    <span class="c1">#</span>
+    <span class="k">def</span> <span class="nf">get_gal_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">n</span>
+        <span class="c1">#self.q = galaxy.q</span>
+        <span class="c1">#self.delt_PA = galaxy.delt_PA</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">re_arcsec</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">q0</span> <span class="o">=</span> <span class="n">galaxy</span><span class="o">.</span><span class="n">q0</span>  <span class="c1"># Assumed intrinsic galaxy thickness</span>
+        
+    <span class="k">def</span> <span class="nf">update_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gal_params</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+    
+    
+<span class="k">class</span> <span class="nc">IntProfileSersic</span><span class="p">(</span><span class="n">IntProfileCompBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntProfileSersic</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">Ie</span> <span class="o">=</span> <span class="mf">1.</span>  <span class="c1"># Placeholder -- will be scaled.</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gal_params</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">):</span>
+        <span class="c1"># Sersic surface intensity profile</span>
+        <span class="n">b_n</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">-</span> <span class="mf">0.324</span>      <span class="c1"># Ciotti+Bertin99</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Ie</span><span class="o">*</span><span class="n">_np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span> <span class="o">-</span><span class="n">b_n</span> <span class="o">*</span> <span class="p">(</span><span class="n">_np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span> <span class="p">(</span><span class="n">r</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">_np</span><span class="o">.</span><span class="n">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)</span> <span class="p">)</span> <span class="o">-</span><span class="mf">1.</span> <span class="p">)</span> <span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">IntProfileExpZ</span><span class="p">(</span><span class="n">IntProfileCompBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntProfileExpZ</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">z0</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">update_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gal_params</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">z0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q0</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span>
+
+<span class="c1">#</span>
+<span class="k">class</span> <span class="nc">IntProfileExpZScale</span><span class="p">(</span><span class="n">IntProfileCompBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IntProfileExpZScale</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">galaxy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_values</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">z</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">z0</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">update_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">galaxy</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_gal_params</span><span class="p">(</span><span class="n">galaxy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">z0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">q0</span><span class="o">*</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">re_arcsec</span><span class="o">/</span><span class="mf">1.676</span><span class="p">)</span>
+    
+<span class="c1">######################################</span>
+
+
+<div class="viewcode-block" id="ThetaPriorFlat"><a class="viewcode-back" href="../../../api/misfit.ThetaPriorFlat.html#misfit.ThetaPriorFlat">[docs]</a><span class="k">class</span> <span class="nc">ThetaPriorFlat</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_vary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;ThetaPriorFlat&#39;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span> <span class="o">=</span> <span class="n">theta_vary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_bounds</span> <span class="o">=</span> <span class="n">theta_bounds</span>
+        
+        
+<div class="viewcode-block" id="ThetaPriorFlat.log_prior"><a class="viewcode-back" href="../../../api/misfit.ThetaPriorFlat.html#misfit.ThetaPriorFlat.log_prior">[docs]</a>    <span class="k">def</span> <span class="nf">log_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_fitting</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">i_free</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">statements</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">_six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">statements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_kfuncs</span><span class="o">.</span><span class="n">_between</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta_bounds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">theta_fitting</span><span class="p">[</span><span class="n">i_free</span><span class="p">]))</span>
+                <span class="n">i_free</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+        <span class="k">if</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">statements</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">prior</span> <span class="o">=</span> <span class="mf">0.</span>
+            
+            <span class="k">return</span> <span class="n">prior</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="n">_np</span><span class="o">.</span><span class="n">inf</span></div></div>
+            
+
+<div class="viewcode-block" id="Theta2DSettings"><a class="viewcode-back" href="../../../api/misfit.Theta2DSettings.html#misfit.Theta2DSettings">[docs]</a><span class="k">class</span> <span class="nc">Theta2DSettings</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to initialize the settings needed for the fitting parameters, </span>
+<span class="sd">        which is passed to the fitEmis2D object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_vary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">theta_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_names_nice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                    <span class="n">theta_bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">theta_linked_posteriors</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">theta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span> <span class="o">=</span> <span class="n">theta_vary</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names</span> <span class="o">=</span> <span class="n">theta_names</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names_nice</span> <span class="o">=</span> <span class="n">theta_names_nice</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_bounds</span> <span class="o">=</span> <span class="n">theta_bounds</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_linked_posteriors</span> <span class="o">=</span> <span class="n">theta_linked_posteriors</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Theta2DSettings.setAttr"><a class="viewcode-back" href="../../../api/misfit.Theta2DSettings.html#misfit.Theta2DSettings.setAttr">[docs]</a>    <span class="k">def</span> <span class="nf">setAttr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set/update arbitrary attribute list with **kwargs&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">([(</span><span class="n">key</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="p">]))</span></div></div>
+
+    
+
+
+<div class="viewcode-block" id="Theta2DSettingsFiducial"><a class="viewcode-back" href="../../../api/misfit.Theta2DSettingsFiducial.html#misfit.Theta2DSettingsFiducial">[docs]</a><span class="k">class</span> <span class="nc">Theta2DSettingsFiducial</span><span class="p">(</span><span class="n">Theta2DSettings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to initialize the settings needed for the fitting parameters, </span>
+<span class="sd">        which is passed to the fitEmis2D object.</span>
+<span class="sd">        Contains defaults for fiducial (arctan + const velocity dispersion) kinModel</span>
+<span class="sd">        </span>
+<span class="sd">    Designed to have the Velocity profile parameters first, then Dispersion profile params, then </span>
+<span class="sd">        composite / other parameters (eg, spatial + wavelength shift)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Theta2DSettingsFiducial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_vary</span> <span class="o">=</span> <span class="n">_np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;V_a&#39;</span><span class="p">,</span> <span class="s1">&#39;r_t&#39;</span><span class="p">,</span> <span class="s1">&#39;sigma0&#39;</span><span class="p">,</span> <span class="s1">&#39;m0_shift&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta_names_nice</span> <span class="o">=</span> <span class="p">[</span><span class="s1">r&#39;$V_a$&#39;</span><span class="p">,</span> <span class="s1">r&#39;$r_t$&#39;</span><span class="p">,</span> <span class="s1">r&#39;$\sigma_0$&#39;</span><span class="p">,</span> 
+                            <span class="s1">r&#39;$m_{0,shift}$&#39;</span><span class="p">,</span> <span class="s1">r&#39;$z$&#39;</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">setAttr</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+        
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Page Contents</h3>
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+<footer class="footer">
+  <p class="pull-right"> &nbsp;
+    <a href="#">Back to Top</a></p>
+  <p>
+    &copy; Copyright 2019, Sedona Price.<br/>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.5.1. &nbsp;
+    Last built 15 Nov 2019. <br/>
+  </p>
+</footer>
+  </body>
+</html>
