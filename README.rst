@@ -35,7 +35,7 @@ With py2.7.xx, currently have::
     ------------------------------------------------
         
         
-With py2.7.17??, it is::
+With py2.7.17XX, it is::
     <TO DO>
     
     
