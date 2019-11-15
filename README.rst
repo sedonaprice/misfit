@@ -14,7 +14,7 @@ Description
 Usage
 ------------
 
-###Main###
+Main usage:
 *   fitEmis2D = misfit.FitEmissionLines2D class
  -       (in fit.fit2D)
 *   fitEmis2D.fit(thetaSettings=thetaSettings)
