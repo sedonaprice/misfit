@@ -248,7 +248,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             prob = None
             state = None
             for k in _six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
-                print( "k={:d}, time: {}".format(k, datetime.datetime.now()) )
+                print( "k={:3d}, time: {}".format(k, datetime.datetime.now()) )
                 pos, prob, state = sampler.run_mcmc(pos, 1, lnprob0=prob, rstate0=state)
             
             
@@ -342,7 +342,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             
             # --------------------------------
             # Give output info about this step:
-            print( "ii={:d}, a_frac={:0.4f}, time: {}".format(ii, _np.mean(sampler.acceptance_fraction),
+            print( "ii={:3d}, a_frac={:0.4f}, time: {}".format(ii, _np.mean(sampler.acceptance_fraction),
                             datetime.datetime.now()) )
             
             try:

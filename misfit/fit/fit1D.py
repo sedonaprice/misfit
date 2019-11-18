@@ -332,7 +332,7 @@ class FitEmissionLines1D(object):
                 for i in _six.moves.xrange(self.num_MC):
                     #print "MC error iter %i/%i" % (i+1,self.num_MC)
                     if ( ((i+1) % 50 == 0)):
-                        print("MC error iter {:d}/{:d}".format(i+1,self.num_MC))
+                        print("MC error iter {:3d}/{:3d}".format(i+1,self.num_MC))
                     
                     spec_perturb = self.galaxy.spec1D_trim.flux.copy()
                     # Now perturb randomly, using normal distribution
