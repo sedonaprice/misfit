@@ -262,6 +262,10 @@ class FitEmissionLines2D(object):
         if self.kinModel is None:
             self.setup_model()
                             
+        #self.reload_bestfit_model()
+        
+        print("  % fit2d: inst_res={:0.3f}".format(self.instrument.instrument_resolution))
+        
         self.analyze_results()
         
         if resave_bestfit:
@@ -279,9 +283,7 @@ class FitEmissionLines2D(object):
             Calculations on sampler chain, plotting of best-fit values
         """
         if self.sampler_dict is None:
-            if self.mcmcOptions.filename_sampler is not None:
-                # Save stuff to file, for future use:
-                self.sampler_dict = _fit_io.load_pickle(self.mcmcOptions.filename_sampler)
+            self.reload_sampler()
         
         self.get_chain_results()
         
@@ -395,7 +397,13 @@ class FitEmissionLines2D(object):
         
         return fitEmis2DResults
             
-    def load_bestfit_model(self):
+    def reload_sampler(self):
+        if self.mcmcOptions.filename_sampler is not None:
+            # Save stuff to file, for future use:
+            self.sampler_dict = _fit_io.load_pickle(self.mcmcOptions.filename_sampler)
+        
+        
+    def reload_bestfit_model(self):
         """
         Restore pickled fitEmis2D class, including analysis calculations.
         """
