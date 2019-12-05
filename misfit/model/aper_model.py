@@ -649,7 +649,7 @@ class AperModel2D(object):
         else:
             self.n_pix_y_whole = self.galaxy.spec2D.shape[0]
             
-        self.n_pix_y = self.n_pix_y_whole*self.nSubpixels
+        self.n_pix_y = _np.int(self.n_pix_y_whole*self.nSubpixels)
         
         self.delt_y = self.instrument.pixscale/self.nSubpixels # Subpixel scale
         
