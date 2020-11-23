@@ -12,14 +12,15 @@
 
 # if not _ASTROPY_SETUP_:
 #     # For egg_info test builds to pass, put package imports here.
-# 
+#
 #     pass
 
+import os
 
 import matplotlib
 #matplotlib.use('agg')
 try:
-    _os.environ["DISPLAY"] 
+    os.environ["DISPLAY"]
 except:
     matplotlib.use("agg")
 
@@ -38,9 +39,9 @@ try:
     import plot
     import mock
     import tests
-    
+
     from galaxy import Galaxy
-    
+
     from model.emission_lines_model import EmissionLinesSpectrum1DModel
 
     from model.kin_model import KinModel2DOptions, KinModel2D
@@ -51,7 +52,7 @@ try:
 
     from fit import FitEmissionLines2D
     from fit.fit_core import MCMC2DOptions, MCMCResults
-    
+
 except:
     from . import fit
     from . import general
@@ -59,9 +60,9 @@ except:
     from . import plot
     from . import mock
     from . import tests
-    
+
     from .galaxy import Galaxy
-    
+
     from .model.emission_lines_model import EmissionLinesSpectrum1DModel
 
     from .model.kin_model import KinModel2DOptions, KinModel2D
@@ -72,7 +73,7 @@ except:
 
     from .fit import FitEmissionLines2D
     from .fit.fit_core import MCMC2DOptions, MCMCResults
-    
+
 
 
 
