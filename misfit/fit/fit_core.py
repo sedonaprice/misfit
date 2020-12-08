@@ -15,7 +15,12 @@ import six
 
 import emcee
 import psutil
-import acor
+# try:
+#     import acor
+# except:
+#     pass
+
+
 
 import copy
 
@@ -168,8 +173,27 @@ def lnprob(theta_fitting, fitEmis2D):
 
     return ln_prob
 
+#
 
 def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
+    """
+    Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit,
+    a version of fitEmis2D that is very pared down, for faster copying+calculation.
+    Otherwise will crudely get rid of most things in these classes before calculation.
+
+    However, if the fitEmis2D, galaxy, instrument class have lots of specially-defined attributes,
+        may want to fully setup model (eg, do fitEmis2D.setup_model(thetaSettings=thetaSettings))
+        and then delete attributes
+    """
+    if np.int(emcee.__version__[0]) >= 3:
+        fitEmis2D = _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=fitEmis2D_fit)
+    else:
+        fitEmis2D = _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=fitEmis2D_fit)
+
+    return fitEmis2D
+
+
+def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
     """
     Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit,
     a version of fitEmis2D that is very pared down, for faster copying+calculation.
@@ -254,10 +278,19 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             end = time.time()
             elapsed = end-start
 
+            # try:
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            # except:
+            #     acor_time = "Undefined, chain did not converge"
+
+
             try:
-                acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+                acor_time = sampler.get_autocorr_time(self, low=5, c=10)
             except:
                 acor_time = "Undefined, chain did not converge"
+
+
+
 
 
             #######################################################################################
@@ -344,8 +377,14 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
             print( "ii={:3d}, a_frac={:0.4f}, time: {}".format(ii, np.mean(sampler.acceptance_fraction),
                             datetime.datetime.now()) )
 
+            # try:
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
+            # except RuntimeError:
+            #     f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
+            #     acor_time = None
             try:
-                acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+                acor_time = sampler.get_autocorr_time(self, low=5, c=10)
                 f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
             except RuntimeError:
                 f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
@@ -387,7 +426,8 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
         elapsed = end-start
         f_log.write("Finished {} steps".format(finishedSteps)+"\n")
         try:
-            acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            acor_time = sampler.get_autocorr_time(self, low=5, c=10)
         except:
             acor_time = "Undefined, chain not converged"
 
@@ -424,6 +464,335 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
 
         #pool.close()
         sampler.pool.close()
+
+        if fitEmis2D.mcmcOptions.filename_sampler is not None:
+            # Save stuff to file, for future use:
+            fit_io.dumppickle(sampler_dict, filename=fitEmis2D.mcmcOptions.filename_sampler)
+
+
+
+    ##########################################
+    ##########################################
+    ##########################################
+
+    # --------------------------------
+    # Plot trace, if output file set
+    if fitEmis2D.mcmcOptions.filename_plot_trace is not None:
+        misfit_plot.plot_trace(sampler_dict, fitEmis2D,
+                        fileout=fitEmis2D.mcmcOptions.filename_plot_trace)
+
+    fitEmis2D.sampler_dict = sampler_dict
+
+    return fitEmis2D
+
+#
+def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
+    """
+    Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit,
+    a version of fitEmis2D that is very pared down, for faster copying+calculation.
+    Otherwise will crudely get rid of most things in these classes before calculation.
+
+    However, if the fitEmis2D, galaxy, instrument class have lots of specially-defined attributes,
+        may want to fully setup model (eg, do fitEmis2D.setup_model(thetaSettings=thetaSettings))
+        and then delete attributes
+
+    Updated for emcee v3
+    """
+    # --------------------------------
+    # Setup for threading for emcee, if desired
+    if fitEmis2D.mcmcOptions.nCPUs is None:
+        fitEmis2D.mcmcOptions.nCPUs = np.int(np.floor(psutil.cpu_count()*fitEmis2D.mcmcOptions.cpuFrac))
+    if fitEmis2D.mcmcOptions.NoThread:
+        fitEmis2D.mcmcOptions.nCPUs = 1
+
+
+    # --------------------------------
+    if fitEmis2D_fit is None:
+
+        fitEmis2D_fit = make_pruned_fitEmis2D_class(fitEmis2D)
+
+
+    # --------------------------------
+    # Start pool, moves, backend:
+    if (fitEmis2D.mcmcOptions.nCPUs > 1):
+        pool = Pool(fitEmis2D.mcmcOptions.nCPUs)
+    else:
+        pool = None
+
+    moves = emcee.moves.StretchMove(a=fitEmis2D.mcmcOptions.scale_param_a)
+
+    backend_burn = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="burnin_mcmc")
+
+    if overwrite:
+        backend_burn.reset(nWalkers, nDim)
+
+    # sampler_burn = emcee.EnsembleSampler(nWalkers, nDim, lnprob,
+    #             backend=backend_burn, pool=pool, moves=moves,
+    #             args=[gal], kwargs=kwargs_dict)
+    #
+    # nBurnCur = sampler_burn.iteration
+    #
+    # nBurn = nBurn_orig - nBurnCur
+
+
+    # --------------------------------
+    # Initialize walker starting positions
+    keys = []
+    for j in six.moves.xrange(len(fitEmis2D.kinModel.theta_names)):
+        if fitEmis2D.kinModel.theta_vary[j]:
+            keys.append(fitEmis2D.kinModel.theta_names[j])
+
+    initial_pos = init_walker_pos(fitEmis2D, ndim=fitEmis2D.kinModel.n_free_param,
+                    nwalkers=fitEmis2D.mcmcOptions.nWalkers)
+
+
+    # --------------------------------
+    # Initialize emcee sampler
+
+    sampler_burn = emcee.EnsembleSampler(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param,
+                                    lnprob,
+                                    backend=backend_burn, pool=pool, moves=moves,
+                                    args=(fitEmis2D_fit,))
+
+
+    # --------------------------------
+    # Start log file
+    with utils.file_or_stdout(fitEmis2D.mcmcOptions.filename_log) as f_log:
+        f_log.write('NoThread = {} \n'.format(fitEmis2D.mcmcOptions.NoThread))
+        f_log.write('nCPUs: {} \n'.format(fitEmis2D.mcmcOptions.nCPUs))
+        f_log.write('nSubpixels = {} \n'.format(fitEmis2D.kinModel.kinModelOptions.nSubpixels))
+        f_log.write('PSF_type = {} \n'.format(fitEmis2D.instrument.PSF.PSF_type))
+        f_log.write('PSF yspace_dither_arc = {} \n'.format(fitEmis2D.instrument.PSF.yspace_dither_arc))
+
+
+        print('NoThread = {}'.format(fitEmis2D.mcmcOptions.NoThread))
+        print('nCPUs: {}'.format(fitEmis2D.mcmcOptions.nCPUs))
+        print('nSubpixels = {}'.format(fitEmis2D.kinModel.kinModelOptions.nSubpixels))
+        print('PSF_type = {}'.format(fitEmis2D.instrument.PSF.PSF_type))
+        print('PSF yspace_dither_arc = {}'.format(fitEmis2D.instrument.PSF.yspace_dither_arc))
+        print("")
+
+        ################################################################
+        # --------------------------------
+        # Run burn-in
+        if fitEmis2D.mcmcOptions.nBurn > 0:
+            f_log.write('Burn-in: \n')
+            f_log.write('Start: {} \n'.format(datetime.datetime.now()))
+
+            start = time.time()
+
+            ####
+            pos = initial_pos
+            prob = None
+            state = None
+            for k in six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
+                print( "k={:3d}, time: {}".format(k, datetime.datetime.now()) )
+                pos = sampler_burn.run_mcmc(pos, 1)
+
+
+            end = time.time()
+            elapsed = end-start
+
+            # try:
+            #     acor_time = [acor.acor(sampler_burn.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            # except:
+            #     acor_time = "Undefined, chain did not converge"
+
+
+            acor_time = sampler_burn.get_autocorr_time(tol=10, quiet=True)
+
+            #######################################################################################
+            # Return Burn-in info
+            # ****
+
+            f_log.write('End: '+str(datetime.datetime.now())+'\n')
+            f_log.write('\n')
+            f_log.write('******************'+'\n')
+            f_log.write('nCPU, nParam, nWalker, nBurn = {}, {}, {}, {} \n'.format(fitEmis2D.mcmcOptions.nCPUs,
+                            fitEmis2D.kinModel.n_free_param,
+                            fitEmis2D.mcmcOptions.nWalkers,
+                            fitEmis2D.mcmcOptions.nBurn))
+            f_log.write("keys={} \n".format(keys))
+            f_log.write('Scale param a= {} \n' .format(fitEmis2D.mcmcOptions.scale_param_a))
+            f_log.write('Time= {:3.2f} (sec), {:3.0f}:{:3.2f} (m:s) \n'.format(elapsed, np.floor(elapsed/60.),
+                                (elapsed/60.-np.floor(elapsed/60.))*60.))
+            f_log.write("Mean acceptance fraction: {:0.3f} \n ".format(np.mean(sampler.acceptance_fraction)))
+
+            f_log.write("Ideal acceptance frac: 0.2 - 0.5 \n")
+            # Autocorrelation time:
+            f_log.write("Acor est: ")
+            f_log.write(str(acor_time))
+            f_log.write('\n')
+            f_log.write('******************\n')
+            f_log.write('\n')
+
+            nBurn_nEff = 2
+            try:
+                if fitEmis2D.mcmcOptions.nBurn < np.max(acor_time) * nBurn_nEff:
+                    f_log.write('#################\n')
+                    f_log.write('nBurn is less than {}*acorr time \n'.format(nBurn_nEff))
+                    f_log.write('#################\n')
+                    # Give warning if the burn-in is less than say 2-3 times the autocorr time
+            except:
+                f_log.write('#################\n')
+                f_log.write("acorr time undefined -> can't check convergence\n")
+                f_log.write('#################\n')
+
+
+            ##########################################
+            ##########################################
+            ##########################################
+            # --------------------------------
+            # Plot burn-in trace, if output file set
+            if fitEmis2D.mcmcOptions.filename_plot_trace_burnin is not None:
+                sampler_dict_burnin = fit_io.make_emcee_sampler_dict(sampler_burn, fitEmis2D=fitEmis2D, nBurn=0)
+                misfit_plot.plot_trace(sampler_dict_burnin, fitEmis2D,
+                                fileout=fitEmis2D.mcmcOptions.filename_plot_trace_burnin)
+            ##########################################
+            ##########################################
+            ##########################################
+
+            # Reset sampler after burn-in:
+            #sampler.reset()
+
+        else:
+            # --------------------------------
+            # No burn-in: set initial position:
+            pos = np.array(initial_pos)
+            prob = None
+            state = None
+
+        #######################################################################################
+        # ****
+        #######################################################################################
+        # Setup sampler:
+        # --------------------------------
+        # Start backend:
+        backend = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="mcmc")
+
+        if overwrite:
+            backend.reset(nWalkers, nDim)
+
+        # sampler = emcee.EnsembleSampler(nWalkers, nDim, log_prob,
+        #             backend=backend, pool=pool, moves=moves,
+        #             args=[gal], kwargs=kwargs_dict)
+        sampler = emcee.EnsembleSampler(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param,
+                                    lnprob,
+                                    backend=backend, pool=pool, moves=moves,
+                                    args=(fitEmis2D_fit,))
+
+        # --------------------------------
+        # Run sampler: Get start time
+        f_log.write('Ensemble sampling:\n')
+        f_log.write('Start: {} \n'.format(datetime.datetime.now()))
+        start = time.time()
+
+        # --------------------------------
+        # Run sampler: output info at each step
+        for ii in six.moves.xrange(fitEmis2D.mcmcOptions.nSteps):
+            pos_cur = pos.copy()    # copy just in case things are set strangely
+
+            # --------------------------------
+            # Only do one step at a time.
+            pos = sampler.run_mcmc(pos, 1)
+            # --------------------------------
+
+            # --------------------------------
+            # Give output info about this step:
+            print( "ii={:3d}, a_frac={:0.4f}, time: {}".format(ii, np.mean(sampler.acceptance_fraction),
+                            datetime.datetime.now()) )
+
+            # try:
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
+            # except RuntimeError:
+            #     f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
+            #     acor_time = None
+            try:
+                acor_time = sampler.get_autocorr_time(tol=10, quiet=True)
+                f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
+            except RuntimeError:
+                f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
+                acor_time = None
+
+            # --------------------------------
+            # Case: test for convergence and truncate early:
+            # Criteria checked: whether acceptance fraction within (minAF, maxAF),
+            #                   and whether total number of steps > nEff * average autocorrelation time:
+            #                   to make sure the paramter space is well explored.
+            if ( (fitEmis2D.mcmcOptions.minAF is not None) & \
+                    (fitEmis2D.mcmcOptions.maxAF is not None) & \
+                    (fitEmis2D.mcmcOptions.nEff is not None) & \
+                    (acor_time is not None)):
+                if ((fitEmis2D.mcmcOptions.minAF < np.mean(sampler.acceptance_fraction) < fitEmis2D.mcmcOptions.maxAF) & \
+                    (not fitEmis2D.mcmcOptions.runAllSteps) & \
+                    (ii > np.max(acor_time) * fitEmis2D.mcmcOptions.nEff) ):
+                    if ii == acor_force_min:
+                        f_log.write(" Enforced min step limit: {}.".format(ii+1))
+                    if ii >= acor_force_min:
+                        f_log.write(" Finishing calculations early at step {}.".format(ii+1))
+                        break
+
+
+        # --------------------------------
+        # Check if it converged before the max number of steps
+        finishedSteps= ii+1
+        if (finishedSteps == fitEmis2D.mcmcOptions.nSteps) & \
+            ( (fitEmis2D.mcmcOptions.minAF is not None) & \
+                (fitEmis2D.mcmcOptions.maxAF is not None) & \
+                (fitEmis2D.mcmcOptions.nEff is not None) ) & \
+               (not fitEmis2D.mcmcOptions.runAllSteps):
+            f_log.write("Caution: no convergence within nSteps."+'\n')
+
+
+        # --------------------------------
+        # Finishing info for fitting:
+        end = time.time()
+        elapsed = end-start
+        f_log.write("Finished {} steps".format(finishedSteps)+"\n")
+        try:
+            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            acor_time = sampler.get_autocorr_time(tol=10, quiet=True)
+        except:
+            acor_time = "Undefined, chain not converged"
+
+        #######################################################################################
+        # ***********
+        # Consider overall acceptance fraction
+        f_log.write('End: '+str(datetime.datetime.now())+'\n')
+        f_log.write('\n')
+        f_log.write('******************'+'\n')
+        f_log.write('nCPU, nParam, nWalker, nSteps = {}, {}, {}, {} \n'.format(fitEmis2D.mcmcOptions.nCPUs,
+                        fitEmis2D.kinModel.n_free_param,
+                        fitEmis2D.mcmcOptions.nWalkers,
+                        fitEmis2D.mcmcOptions.nSteps))
+        f_log.write("keys={} \n".format(keys))
+        f_log.write('Scale param a= {} \n'.format(fitEmis2D.mcmcOptions.scale_param_a))
+        f_log.write('Time= {:3.2f} (sec), {:3.0f}:{:3.2f} (m:s) \n'.format(elapsed, np.floor(elapsed/60.),
+                                        (elapsed/60.-np.floor(elapsed/60.))*60.))
+        f_log.write("Mean acceptance fraction: {:0.3f} \n".format(np.mean(sampler.acceptance_fraction)))
+
+        f_log.write("Ideal acceptance frac: 0.2 - 0.5 \n")\
+        # Autocorrelation time:
+        f_log.write("Acor est: ")
+        f_log.write(str(acor_time))
+        f_log.write('\n')
+        f_log.write('******************\n')
+
+
+        # --------------------------------
+        # Save sampler, if output file set:
+        #   Burn-in is already cut by resetting the sampler at the beginning.
+
+        # Get pickleable format:
+        sampler_dict = fit_io.make_emcee_sampler_dict(sampler, fitEmis2D=fitEmis2D, nBurn=0)
+
+        # #pool.close()
+        # sampler.pool.close()
+        if fitEmis2D.mcmcOptions.nCPUs > 1:
+            pool.close()
+            sampler.pool.close()
+            sampler_burn.pool.close()
 
         if fitEmis2D.mcmcOptions.filename_sampler is not None:
             # Save stuff to file, for future use:

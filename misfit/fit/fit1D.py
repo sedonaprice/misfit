@@ -24,11 +24,17 @@ import sys
 import pickle
 import six
 
-import misfit.general.general_utils as utils
-import misfit.general.io as io
 from scipy.stats import norm
 
-from misfit.model.emission_lines_model import EmissionLinesSpectrum1DModel
+try:
+    import misfit.general.general_utils as utils
+    import misfit.general.io as io
+    from misfit.model.emission_lines_model import EmissionLinesSpectrum1DModel
+except:
+    from ..general import general_utils as utils
+    from ..general import io as io
+    from ..model.emission_lines_model import EmissionLinesSpectrum1DModel
+
 
 import lmfit
 

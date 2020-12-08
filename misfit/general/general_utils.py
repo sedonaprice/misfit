@@ -64,7 +64,8 @@ def gaus_profile(params, xx):
     mu = params['mu'].value
     sigma = params['sigma'].value
 
-    if params.has_key('C'):
+    #if params.has_key('C'):
+    if 'C' in params.keys():
         C = params['C'].value
     else:
         C = None

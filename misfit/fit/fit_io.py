@@ -37,6 +37,14 @@ def make_emcee_sampler_dict(sampler,fitEmis2D=None, nBurn=0):
 
     #  'fitEmis2D': sampler.args,
 
+    try:
+        acor_time = sampler.get_autocorr_time(tol=10, quiet=True)
+    except:
+        try:
+            acor_time = sampler.get_autocorr_time(self, low=5, c=10)
+        except:
+            acor_time = np.NaN
+
     # Make a dictionary:
     df = { 'fitEmis2D': fitEmis2D_fit,
            'chain': sampler.chain[:, nBurn:, :],
@@ -47,7 +55,8 @@ def make_emcee_sampler_dict(sampler,fitEmis2D=None, nBurn=0):
            'nParam': sampler.dim,
            'nCPU': sampler.threads,
            'nWalkers': len(sampler.chain),
-           'acceptance_fraction': sampler.acceptance_fraction }
+           'acceptance_fraction': sampler.acceptance_fraction,
+           'acor_time': acor_time }
 
     return df
 

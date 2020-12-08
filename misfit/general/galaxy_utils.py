@@ -885,8 +885,15 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
 
 
         m0 = np.int(np.round(result.params['mu'].value))
+        if (m0 > (len(snr_arr) -1)):
+            m0_closest = len(snr_arr) -1
+        elif (m0 < 0):
+            m0_closest = 0
+        else:
+            m0_closest = m0
+
         m0_shift_fit = result.params['mu'].value - m0
-        m0_peak_snr = snr_arr[m0]
+        m0_peak_snr = snr_arr[m0_closest]
         if dither:
             m1 = np.int(np.round(result.params['mu_l'].value))
             m2 = np.int(np.round(result.params['mu_r'].value))
@@ -961,8 +968,14 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
                                 args=(xx, sp_arr, err_arr))
 
                 m0 = np.int(np.round(result.params['mu'].value))
+                if (m0 > (len(snr_arr) -1)):
+                    m0_closest = len(snr_arr) -1
+                elif (m0 < 0):
+                    m0_closest = 0
+                else:
+                    m0_closest = m0
                 m0_shift_fit = result.params['mu'].value - m0
-                m0_peak_snr = snr_arr[m0]
+                m0_peak_snr = snr_arr[m0_closest]
                 if dither:
                     m1 = np.int(np.round(result.params['mu_l'].value))
                     m2 = np.int(np.round(result.params['mu_r'].value))
@@ -1052,8 +1065,14 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
                                     args=(xx, sp_arr, err_arr))
 
                 m0 = np.int(np.round(result.params['mu'].value)) + trimval
+                if (m0 > (len(snr_arr) -1)):
+                    m0_closest = len(snr_arr) -1
+                elif (m0 < 0):
+                    m0_closest = 0
+                else:
+                    m0_closest = m0
                 m0_shift_fit = result.params['mu'].value + trimval - m0
-                m0_peak_snr = snr_arr[m0-trimval]
+                m0_peak_snr = snr_arr[m0_closest-trimval]
                 if dither:
                     m1 = np.int(np.round(result.params['mu_l'].value)) + trimval
                     m2 = np.int(np.round(result.params['mu_r'].value)) + trimval
@@ -1471,21 +1490,15 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
     wh_not_mask_y = np.setdiff1d(six.moves.xrange(len(yy_arr)), spec2D.low_snr_row_inds)
     #wh_not_mask_y = six.moves.xrange(len(yy_arr))
 
+    # if (len(wh_not_mask_y) == 0):
+    #     raise ValueError
+
+
     if (len(wh_not_mask_y) > 0):
         # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if (filename_plot is not None) | (plot is True):
             import matplotlib.pyplot as _plt
             import matplotlib.gridspec as _gridspec
-
-
-            # fig2 = _plt.figure()
-            # fig2.set_size_inches(8., 4.)
-            # gs1 = _gridspec.GridSpec(1, 1, height_ratios=[1])
-            # gs1.update(left=0.05, right=0.98, wspace=0.1)
-            # ax2 = _plt.subplot(gs1[0,0])
-            #
-            # ax2.imshow(spec2D.flux*spec2D.mask_sky, interpolation="None", origin='lower')
-            #
 
             fig = _plt.figure()
             fig.set_size_inches(8., 4.)
@@ -1506,6 +1519,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
         #params.add('C', value=0.)   # constant offset
 
         try:
+        #if True:
 
             # Check there's even more than PSF FWHM in unmasked rows: otherwise, fits will really not nec. work.
             if len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 0.8:
@@ -1638,7 +1652,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
                     f_or_m = "-".join(gal.maskname.split("_"))
                 except:
                     f_or_m = gal.field
-                ax.set_title(r'{}.{}.{}'.format(f_or_m, spec2D.band, np.int64(gal.ID)))
+                ax.set_title(r'{}.{}.{} (SLITOBJNAME: {})'.format(f_or_m, spec2D.band, np.int64(gal.ID), spec2D.slitobjname))
 
                 if (filename_plot is not None):
                     _plt.savefig(filename_plot, bbox_inches='tight', dpi=300)
@@ -1648,6 +1662,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
 
             # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
         except:
+        #else:
             missing_val = -99.
             spec2D.D50 = missing_val
             spec2D.D50_err = np.array([missing_val,missing_val])
