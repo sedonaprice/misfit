@@ -12,13 +12,14 @@ from misfit.model.kin_classes import KinProfileFiducial, IntensityProfileFiducia
 from misfit.model import AperModel2D
 from misfit import Galaxy
 
-from numba import jit
+#from numba import jit
+##from numba import njit
 
 try:
     import kin_functions as kfuncs
 except:
     from . import kin_functions as kfuncs
-    
+
 
 # Options for model:
 class KinModel2DOptions(object):
@@ -331,7 +332,7 @@ class KinModel2D(object):
 
 
 #
-@jit
+#@jit
 def _model_llike(kinModel, model=None):
     if model is None:
         model = kinModel.model
@@ -349,7 +350,7 @@ def _model_llike(kinModel, model=None):
     return -0.5*chisq_arr_raw_modified.sum()
 
 #
-@jit
+#@jit
 def _model_chisq(kinModel, model=None):
     """
     Function to return the reduced chisq of the residual between the
@@ -384,7 +385,7 @@ def _model_chisq(kinModel, model=None):
 
     return chisq
 #
-@jit
+#@jit
 def _model_chisq_no_weight(kinModel, model=None):
     """
     Function to return the reduced chisq of the residual between the

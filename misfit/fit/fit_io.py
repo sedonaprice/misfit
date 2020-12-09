@@ -45,16 +45,39 @@ def make_emcee_sampler_dict(sampler,fitEmis2D=None, nBurn=0):
         except:
             acor_time = np.NaN
 
+    try:
+        nDim = sampler.ndim
+    except:
+        nDim = sampler.dim
+
+    try:
+        nWalkers = sampler.nwalkers
+    except:
+        nWalkers = len(sampler.chain)
+
+    try:
+        nCPUs = sampler.threads
+    except:
+        try:
+            nCPUs = sampler.pool._processes   # sampler.threads
+        except:
+            nCPUs = 1
+
+    try:
+        nIter = sampler.iteration
+    except:
+        nIter = sampler.iterations
+
     # Make a dictionary:
     df = { 'fitEmis2D': fitEmis2D_fit,
            'chain': sampler.chain[:, nBurn:, :],
            'lnprobability': sampler.lnprobability[:, nBurn:],
            'flatchain': samples,
            'flatlnprobability': probs,
-           'nIter': sampler.iterations,
-           'nParam': sampler.dim,
-           'nCPU': sampler.threads,
-           'nWalkers': len(sampler.chain),
+           'nIter': nIter,
+           'nParam': nDim,
+           'nCPU': nCPUs,
+           'nWalkers': nWalkers,
            'acceptance_fraction': sampler.acceptance_fraction,
            'acor_time': acor_time }
 

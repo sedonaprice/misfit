@@ -4,7 +4,8 @@
 from __future__ import print_function
 
 import numpy as np
-from numba import jit
+#from numba import jit
+from numba import njit
 
 import astropy.constants as const
 c_kms = const.c.cgs.value/1.e5
@@ -28,6 +29,8 @@ def _between(bounds, value):
     return bounds[0] <= value <= bounds[1]
 
 
+#@overload jitfftconvolve
+
 ############################################################################
 ############################################################################
 ############################################################################
@@ -35,7 +38,8 @@ def _between(bounds, value):
 # Functions for defining 3D model:
 
 #@jit
-@jit(nopython=True)
+#@jit(nopython=True)
+@njit
 def transform_int_3d(x, y, z, deltPA, i_rad):
     # INPUT deltPA is defined to be positive CCW from up.
 
@@ -129,7 +133,8 @@ def add_sigma_collapse_z(I_wide, V_wide, sigma_wide,
     return I_Vxy
 
 #@jit(nopython=True)
-@jit
+#@jit
+@njit
 def I_simple_collapse(I_wide, V_wide, wave_arr,
                     nWave, nZ, nY, nX,
                     delt_z, delt_wave, lam0):
@@ -351,8 +356,9 @@ def check_slit_illum(xarr, wh_in_slit_x, A_tmp, mu_y, FWHM_arcsec, tot_slit_widt
 
     return delx_y, FWHM_arcsec
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+#@jit
+#@njit
 def PSF_convolve(spectra_cube, PSF):
     # Convolve with seeing:
     # Should have shape (nWave, nY, nX)
@@ -369,8 +375,9 @@ def PSF_convolve(spectra_cube, PSF):
     else:
         return spectra_cube
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+#@jit
+#@njit
 def PSF_convolve_flat(pstamp, PSF):
     # Convolve with seeing:
     # Should have shape (nWave, nY, nX)
@@ -410,8 +417,9 @@ def rebin(a, *args):
     return 1.*eval(''.join(evList))
 
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+#@jit
+@njit
 def convol_inst(model_out, xx, lam_cent, fwhm_array):
     # for k in range(model_out.shape[1]):
     for k in six.moves.xrange(model_out.shape[1]):
@@ -424,7 +432,11 @@ def convol_inst(model_out, xx, lam_cent, fwhm_array):
         # conserve total flux:
         fluxtot = np.sum(model_out[:,k])
 
-        model_out[:,k] = fftconvolve(model_out[:,k], wave_gaus, mode='same')
+        #model_out[:,k] = fftconvolve(model_out[:,k], wave_gaus, mode='same')
+        #model_out[:,k] = jitfftconvolve(model_out[:,k], wave_gaus, mode='same')
+        with objmode(out='float64[:]'):
+             out = fftconvolve(model_out[:,k], wave_gaus, mode='same')
+        model_out[:,k] = out
         fluxtotnew = np.sum(model_out[:,k])
 
         if fluxtotnew > 0.:
@@ -435,8 +447,9 @@ def convol_inst(model_out, xx, lam_cent, fwhm_array):
 
     return model_out
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+#@jit
+#@njit
 def convol_instconstfwhm(model_out, xx, lam_cent, fwhm_wave):
     wave_gaus = gaus_from_fwhm(xx, fwhm_wave, lam_cent)
     # Replace non-finite with 0.
@@ -453,6 +466,7 @@ def convol_instconstfwhm(model_out, xx, lam_cent, fwhm_wave):
 
 
 #@jit
+#@njit
 def inst_convol_complete(model_out, wave_arr, inst_disp_wave):
     # Convert instrument resol dispersion (sigma) to FWHM
     fwhm_wave = inst_disp_wave*(2.*np.sqrt(2.*np.log(2.)))
@@ -483,7 +497,8 @@ def inst_convol_complete(model_out, wave_arr, inst_disp_wave):
 
 
 #@jit(nopython=True)
-@jit
+#@jit
+@njit
 def gaus_from_fwhm(x, FWHM, x0):
     """
     Quick function to return gaussian profile given array x,
@@ -496,7 +511,8 @@ def gaus_from_fwhm(x, FWHM, x0):
     return y
 
 
-@jit(nopython=True)
+#@jit(nopython=True)
+@njit
 def sin_i(q, q0=None):
     if q < q0:
         sini = 1.
@@ -804,7 +820,8 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None, re_ma
     return sigma_aper
 
 
-@jit
+#@jit
+@njit
 def disp_square(x, y, q=None, delt_PA=None, re_mass_arcsec=None, r_core=None):
 
     r = r_int_ellip(x, y, q, delt_PA)
@@ -817,7 +834,8 @@ def disp_square(x, y, q=None, delt_PA=None, re_mass_arcsec=None, r_core=None):
 
 
 #@jit(nopython=True)
-@jit
+#@jit
+@njit
 def r_int_ellip(x, y, q, delt_PA):
 
 
@@ -836,7 +854,8 @@ def r_int_ellip(x, y, q, delt_PA):
 
 
 #@jit
-@jit(nopython=True)
+#@jit(nopython=True)
+@njit
 def sigma_profile(r, re, d=-0.089, r_core=1/300.):
     # Use values from van de Sande + 2013
     #d = -0.089
@@ -848,7 +867,7 @@ def sigma_profile(r, re, d=-0.089, r_core=1/300.):
 
     return sigma_cnst * np.power( ((r+r_core_val)/re), d )
 
-@jit
+@njit
 def Igal(x, y, re_arcsec=None, n=None, q=None, delt_PA=None,r_core=None):
     r = r_int_ellip(x, y, q, delt_PA)
 
@@ -857,7 +876,8 @@ def Igal(x, y, re_arcsec=None, n=None, q=None, delt_PA=None,r_core=None):
     return I_sersic(r, re_arcsec, n, Ie, r_core=r_core)
 
 #@jit
-@jit(nopython=True)
+#@jit(nopython=True)
+@njit
 def I_sersic(r, re, n, Ie, r_core=1/300.):
     # Sersic surface intensity profile
     b_n = 2.*n - 0.324      # Ciotti 1991, valid 0.5 <= n <= 10

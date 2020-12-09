@@ -7,6 +7,9 @@
 
 from __future__ import print_function
 
+
+from multiprocessing import cpu_count, Pool
+
 import numpy as np
 
 import pickle
@@ -21,6 +24,8 @@ import psutil
 #     pass
 
 
+if np.int(emcee.__version__[0]) >= 3:
+    import h5py
 
 import copy
 
@@ -486,7 +491,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
     return fitEmis2D
 
 #
-def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
+def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
     """
     Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit,
     a version of fitEmis2D that is very pared down, for faster copying+calculation.
@@ -524,7 +529,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
     backend_burn = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="burnin_mcmc")
 
     if overwrite:
-        backend_burn.reset(nWalkers, nDim)
+        backend_burn.reset(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param)
 
     # sampler_burn = emcee.EnsembleSampler(nWalkers, nDim, lnprob,
     #             backend=backend_burn, pool=pool, moves=moves,
@@ -616,7 +621,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
             f_log.write('Scale param a= {} \n' .format(fitEmis2D.mcmcOptions.scale_param_a))
             f_log.write('Time= {:3.2f} (sec), {:3.0f}:{:3.2f} (m:s) \n'.format(elapsed, np.floor(elapsed/60.),
                                 (elapsed/60.-np.floor(elapsed/60.))*60.))
-            f_log.write("Mean acceptance fraction: {:0.3f} \n ".format(np.mean(sampler.acceptance_fraction)))
+            f_log.write("Mean acceptance fraction: {:0.3f} \n ".format(np.mean(sampler_burn.acceptance_fraction)))
 
             f_log.write("Ideal acceptance frac: 0.2 - 0.5 \n")
             # Autocorrelation time:
@@ -671,7 +676,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
         backend = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="mcmc")
 
         if overwrite:
-            backend.reset(nWalkers, nDim)
+            backend.reset(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param)
 
         # sampler = emcee.EnsembleSampler(nWalkers, nDim, log_prob,
         #             backend=backend, pool=pool, moves=moves,
@@ -1115,6 +1120,7 @@ class MCMC2DOptions(object):
         # Optional output filenames for MCMC:
         self.filename_log = None
         self.filename_sampler = None
+        self.filename_sampler_h5 = None
         self.filename_bestfit_model = None
         self.filename_plot_trace_burnin = None
         self.filename_plot_trace = None

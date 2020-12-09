@@ -7,7 +7,8 @@
 from __future__ import print_function
 
 import numpy as np
-from numba import jit
+#from numba import jit
+from numba import njit
 import copy
 
 
@@ -137,14 +138,17 @@ class Imager(Instrument):
         self.setAttr(**kwargs)
 
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+@njit
 def PSF_stamp_gauss(x, y, PSF_FWHM=None, yspace_dither_arc=None):
     # x, y should already be *CENTERED*, and in arcsec.
     PSF_sigma = PSF_FWHM/(2.*np.sqrt(2.*np.log(2.)))  # FWHM -> sigma
 
-    xarr_flat = np.tile(x, (len(y),1))
-    yarr_flat = np.tile(np.array([y]).T, (1,len(x)))
+    #xarr_flat = np.tile(x, (len(y),1))
+    #yarr_flat = np.tile(np.array([y]).T, (1,len(x)))
+
+    xarr_flat = np.repeat(x, len(y)).reshape((len(x),len(y))).T
+    yarr_flat = np.repeat(y, len(x)).reshape((len(y),len(x)))
 
     conv_stamp = np.exp(- (xarr_flat**2 + yarr_flat**2)/(2.*(PSF_sigma**2)))
 
@@ -156,13 +160,17 @@ def PSF_stamp_gauss(x, y, PSF_FWHM=None, yspace_dither_arc=None):
 
     return conv_stamp
 
-# TEST 2019.11.14
-@jit
+## TEST 2019.11.14
+@njit
 def PSF_stamp_moffat(x, y, alpha=None, beta=None, yspace_dither_arc=None):
     # x, y should already be *CENTERED*, and in arcsec.
 
-    xarr_flat = np.tile(x, (len(y),1))
-    yarr_flat = np.tile(np.array([y]).T, (1,len(x)))
+    # xarr_flat = np.tile(x, (len(y),1))
+    # yarr_flat = np.tile(np.array([y]).T, (1,len(x)))
+
+    xarr_flat = np.repeat(x, len(y)).reshape((len(x),len(y))).T
+    yarr_flat = np.repeat(y, len(x)).reshape((len(y),len(x)))
+
 
     conv_stamp = (beta-1)/(np.pi * alpha**2) * \
             np.power((1.+(xarr_flat **2 + yarr_flat**2)/(alpha**2)), -beta)
