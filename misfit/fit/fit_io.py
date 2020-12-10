@@ -14,11 +14,18 @@ def make_emcee_sampler_dict(sampler,fitEmis2D=None, nBurn=0):
     as the emcee samplers aren't pickleable.
     """
     # Cut first nBurn steps, to avoid the edge cases that are rarely explored.
-    samples = sampler.chain[:, nBurn:, :].reshape((-1, sampler.dim))
+    try:
+        nDim = sampler.ndim
+    except:
+        nDim = sampler.dim
+    samples = sampler.chain[:, nBurn:, :].reshape((-1, nDim))
     # Walkers, iterations
     probs = sampler.lnprobability[:, nBurn:].reshape((-1))
 
-    fitEmis2D_fit = sampler.args[0].copy()
+    try:
+        fitEmis2D_fit = sampler.args[0].copy()
+    except:
+        fitEmis2D_fit = sampler.log_prob_fn.args[0].copy()
 
     # Drop the large space hogs:
 
