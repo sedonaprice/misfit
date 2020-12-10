@@ -149,7 +149,7 @@ def rot_corner_coords(coords, th, x0=0., y0=0.):
     return corners.T[0], corners.T[1]
 
 def rot_object_center(x0, y0, cent_pix, angle):
-    return rot_cornercoords([[x0,y0]],
+    return rot_corner_coords([[x0,y0]],
                 angle, x0=cent_pix[0], y0=cent_pix[1])
 
 

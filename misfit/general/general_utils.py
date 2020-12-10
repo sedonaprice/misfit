@@ -197,9 +197,7 @@ def range_arrs(fitEmis2D):
     return param_range, param_lower
 
 
-
-
-def find_peakgaussian_kde(flatchain, initval):
+def find_peak_gaussian_KDE(flatchain, initval):
     """
     Return chain parameters that give peak of the posterior PDF, using KDE.
     """
@@ -221,7 +219,7 @@ def find_peakgaussian_kde(flatchain, initval):
         return peakval
 
 
-def find_peakgaussian_kde_multiD(flatchain, linked_inds, initval):
+def find_peak_gaussian_KDE_multiD(flatchain, linked_inds, initval):
     """
     Return chain parameters that give peak of the posterior PDF *FOR LINKED PARAMETERS, using KDE.
     """
@@ -250,7 +248,7 @@ def get_bestfit_values_linked(fitEmis2D, err_theta, mcmc_lims_zip,
     # Reset output values:
     bestfit_theta = fitEmis2D.mcmc_results.bestfit_theta.copy()
 
-    bestfit_theta_linked = find_peakgaussian_kde_multiD(flatchain, theta_linked_posteriors,
+    bestfit_theta_linked = find_peak_gaussian_KDE_multiD(flatchain, theta_linked_posteriors,
             fitEmis2D.mcmc_results.bestfit_theta[theta_linked_posteriors])
 
     for k in six.moves.xrange(len(theta_linked_posteriors)):

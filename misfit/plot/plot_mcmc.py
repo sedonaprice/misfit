@@ -49,7 +49,7 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
     axes = fig.axes
 
     names = fitEmis2D.mcmc_results.theta_names_nice
-    sig1err = np.array(zip(*fitEmis2D.mcmc_results.err_theta_1sig.copy()))
+    sig1err = np.array([*zip(*fitEmis2D.mcmc_results.err_theta_1sig.copy())])
     l68_unc = sig1err[0,:]
     u68_unc = sig1err[1,:]
     nFreeParam = len(truths)

@@ -50,7 +50,7 @@ def plot_image_slit(galaxy=None, instrument=None,
                           and already be created (using proper gridspec positioning, etc)
         saveToFile:     (True/False) Save current axis instance to file. 'fileout' must be set.
     """
-    if galaxy.__dict__.has_key('re_arcsec'):
+    if 're_arcsec' in galaxy.__dict__.keys():
         plot_galfit = True
     else:
         plot_galfit = False

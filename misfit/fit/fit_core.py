@@ -695,8 +695,6 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
         # --------------------------------
         # Run sampler: output info at each step
         for ii in six.moves.xrange(fitEmis2D.mcmcOptions.nSteps):
-            pos_cur = pos.copy()    # copy just in case things are set strangely
-
             # --------------------------------
             # Only do one step at a time.
             pos = sampler.run_mcmc(pos, 1)
