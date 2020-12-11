@@ -247,6 +247,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
 
     # --------------------------------
     # Start log file
+    #f_log = utils.file_or_stdout(fitEmis2D.mcmcOptions.filename_log)
     with utils.file_or_stdout(fitEmis2D.mcmcOptions.filename_log) as f_log:
         f_log.write('NoThread = {} \n'.format(fitEmis2D.mcmcOptions.NoThread))
         f_log.write('nCPUs: {} \n'.format(fitEmis2D.mcmcOptions.nCPUs))
@@ -475,6 +476,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
             fit_io.dumppickle(sampler_dict, filename=fitEmis2D.mcmcOptions.filename_sampler)
 
 
+    #f_log.close()
 
     ##########################################
     ##########################################
@@ -562,6 +564,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
 
     # --------------------------------
     # Start log file
+    #f_log = utils.file_or_stdout(fitEmis2D.mcmcOptions.filename_log)
     with utils.file_or_stdout(fitEmis2D.mcmcOptions.filename_log) as f_log:
         f_log.write('NoThread = {} \n'.format(fitEmis2D.mcmcOptions.NoThread))
         f_log.write('nCPUs: {} \n'.format(fitEmis2D.mcmcOptions.nCPUs))
