@@ -115,6 +115,7 @@ class FitEmissionLines2D(object):
                     mcmcOptions = MCMC2DOptions(),
                     theta_linked_posteriors = None,
                     mcmc_results = MCMCResults(),
+                    usetex=True,
                     **kwargs):
 
         self.galaxy = galaxy
@@ -163,6 +164,7 @@ class FitEmissionLines2D(object):
         # Skip prep calcs: eg, fast creation for re-read of saved objects:
         self.skip_fit_prep_calcs = False
 
+        self.usetex = usetex
 
         self.setAttr(**kwargs)
 
@@ -413,9 +415,11 @@ class FitEmissionLines2D(object):
     def plot_bestfit_model(self):
         #if self.mcmcOptions.filename_plot_bestfit is not None:
         misfit_plot.plot_bestfit_model(self,
-            fileout=self.mcmcOptions.filename_plot_bestfit,verbose=False)
+            fileout=self.mcmcOptions.filename_plot_bestfit,
+            verbose=False, usetex=self.usetex)
 
     def plot_param_corner(self):
         #if self.mcmcOptions.filename_plot_param_corner is not None:
         misfit_plot.plot_param_corner(self,
-            fileout=self.mcmcOptions.filename_plot_param_corner,verbose=False)
+            fileout=self.mcmcOptions.filename_plot_param_corner,
+            verbose=False, usetex=self.usetex)

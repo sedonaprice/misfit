@@ -11,6 +11,8 @@ import os
 
 import matplotlib
 
+#matplotlib.rcParams['text.usetex'] = False
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib import cm

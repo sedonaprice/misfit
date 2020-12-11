@@ -11,6 +11,8 @@ from astropy.wcs import WCS
 
 import matplotlib
 
+#matplotlib.rcParams['text.usetex'] = False
+
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib.patches import Ellipse

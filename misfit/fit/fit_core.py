@@ -84,7 +84,6 @@ class FitEmissionLines2DResults(object):
         self.theta_linked_posteriors = None
         self.mcmc_results = MCMCResults()      # Class for holding MCMC resuls
 
-
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
@@ -113,6 +112,8 @@ class FitEmissionLines2DBasic(object):
         self.thetaPrior = None
 
         self.thetaSettings = None
+
+        self.usetex = True
 
         self.setAttr(**kwargs)
 
@@ -345,7 +346,8 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
             if fitEmis2D.mcmcOptions.filename_plot_trace_burnin is not None:
                 sampler_dict_burnin = fit_io.make_emcee_sampler_dict(sampler, fitEmis2D=fitEmis2D, nBurn=0)
                 misfit_plot.plot_trace(sampler_dict_burnin, fitEmis2D,
-                                fileout=fitEmis2D.mcmcOptions.filename_plot_trace_burnin)
+                                fileout=fitEmis2D.mcmcOptions.filename_plot_trace_burnin,
+                                usetex=fitEmis2D.usetex)
             ##########################################
             ##########################################
             ##########################################
@@ -486,7 +488,8 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
     # Plot trace, if output file set
     if fitEmis2D.mcmcOptions.filename_plot_trace is not None:
         misfit_plot.plot_trace(sampler_dict, fitEmis2D,
-                        fileout=fitEmis2D.mcmcOptions.filename_plot_trace)
+                        fileout=fitEmis2D.mcmcOptions.filename_plot_trace,
+                        usetex=fitEmis2D.usetex)
 
     fitEmis2D.sampler_dict = sampler_dict
 
@@ -993,14 +996,20 @@ def add_v_re_22(fitEmis2D):
 
     # Add the added stuff:
     theta_names.append('V_RE')
-    theta_names_nice.append(r'$V(R_E)$')
     theta_names.append('V_22')
-    theta_names_nice.append(r'$V_{2.2}$')
-
     theta_names.append('sigma_RE')
-    theta_names_nice.append(r'$\sigma(R_E)$')
     theta_names.append('sigma_22')
-    theta_names_nice.append(r'$\sigma_{2.2}$')
+
+    if fitEmis2D.usetex:
+        theta_names_nice.append(r'$V(R_E)$')
+        theta_names_nice.append(r'$V_{2.2}$')
+        theta_names_nice.append(r'$\sigma(R_E)$')
+        theta_names_nice.append(r'$\sigma_{2.2}$')
+    else:
+        theta_names_nice.append('VRE')
+        theta_names_nice.append('V22')
+        theta_names_nice.append('sigmaRE')
+        theta_names_nice.append('sigma22')
 
 
     fitEmis2D.mcmc_results.theta_names = theta_names

@@ -329,13 +329,16 @@ class Theta2DSettingsFiducial(Theta2DSettings):
     Designed to have the Velocity profile parameters first, then Dispersion profile params, then
         composite / other parameters (eg, spatial + wavelength shift)
     """
-    def __init__(self, **kwargs):
+    def __init__(self, usetex=True, **kwargs):
         super(Theta2DSettingsFiducial, self).__init__(**kwargs)
 
         self.theta = np.zeros(5)
         self.theta_vary = np.array([True, True, True, False, False])
         self.theta_names = ['V_a', 'r_t', 'sigma0', 'm0_shift', 'z']
-        self.theta_names_nice = [r'$V_a$', r'$r_t$', r'$\sigma_0$',
+        if usetex:
+            self.theta_names_nice = [r'$V_a$', r'$r_t$', r'$\sigma_0$',
                             r'$m_{0,shift}$', r'$z$']
+        else:
+            self.theta_names_nice = ['Va', 'rt', 'sigma0', 'm0shift', 'z']
 
         self.setAttr(**kwargs)

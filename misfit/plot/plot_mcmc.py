@@ -12,13 +12,17 @@ import six
 
 import matplotlib
 
-matplotlib.rcParams['text.usetex'] = True
+#matplotlib.rcParams['text.usetex'] = False
+#matplotlib.rcParams['text.usetex'] = True
+
+
 
 import matplotlib.pyplot as plt
 
 import corner
 
-def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
+def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
+            usetex=True):
 
     # Chop off the last two: this is sigma_RE, sigma_2.2
 
@@ -61,8 +65,12 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
         q_p = u68_unc[i]
         title_fmt=".2f"
         fmt = "{{0:{0}}}".format(title_fmt).format
-        title = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
-        title = title.format(fmt(best), fmt(q_m), fmt(q_p))
+        if usetex:
+            title = r"${{{0}}}_{{-{1}}}^{{+{2}}}$"
+            title = title.format(fmt(best), fmt(q_m), fmt(q_p))
+        else:
+            title = r"{0}-{1}+{2}"
+            title = title.format(fmt(best), fmt(q_m), fmt(q_p))
 
         # Add in the column name if it's given.
         if names is not None:
@@ -128,7 +136,10 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
 
 
     # Annotate R_E, n
-    galparam_str = r'$n=%0.2f$, $R_E=%0.2f "$' % (fitEmis2D.galaxy.n, fitEmis2D.galaxy.re_arcsec)
+    if usetex:
+        galparam_str = r'$n=%0.2f$, $R_E=%0.2f "$' % (fitEmis2D.galaxy.n, fitEmis2D.galaxy.re_arcsec)
+    else:
+        galparam_str = r'n=%0.2f, RE=%0.2f "' % (fitEmis2D.galaxy.n, fitEmis2D.galaxy.re_arcsec)
     fig.gca().annotate(galparam_str, (0.01, 0.), xycoords='figure fraction',
                             xytext=(0,2), textcoords='offset points',
                             ha='left', va='bottom')
@@ -138,7 +149,10 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
     val = "%3.2f" % fitEmis2D.mcmc_results.bestfit_theta[wh_sig]
     lower = "%3.2f" % fitEmis2D.mcmc_results.err_theta_1sig[wh_sig][0]
     upper = "%3.2f" % fitEmis2D.mcmc_results.err_theta_1sig[wh_sig][1]
-    sig_string = "$\sigma="+val+"^{"+upper+"}_{"+lower+"}$"
+    if usetex:
+        sig_string = "$\sigma="+val+"^{"+upper+"}_{"+lower+"}$"
+    else:
+        sig_string = "sigma="+val+"-"+lower+"+"+upper
     fig.gca().annotate(sig_string, xy=(.33, 0.), xycoords="figure fraction",
                         xytext=(0,2), textcoords="offset points",
                         ha="right", va="bottom")
@@ -153,11 +167,18 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
                     fitEmis2D.mcmc_results.err_theta_1sig[wh_vre][0]
     vre_upper = fitEmis2D.mcmc_results.bestfit_theta[wh_vre] + \
                     fitEmis2D.mcmc_results.err_theta_1sig[wh_vre][1]
-    if (np.sign(vre_lower) != np.sign(vre_upper)):
-        keep_decision = r"$\mathrm{disp}$"
+    if usetex:
+        if (np.sign(vre_lower) != np.sign(vre_upper)):
+            keep_decision = r"$\mathrm{disp}$"
+        else:
+            keep_decision = r"$\mathrm{rot}$"
+        vre_string = "$V(R_E)="+val+"^{"+upper+"}_{"+lower+"}$"+', '+keep_decision
     else:
-        keep_decision = r"$\mathrm{rot}$"
-    vre_string = "$V(R_E)="+val+"^{"+upper+"}_{"+lower+"}$"+', '+keep_decision
+        if (np.sign(vre_lower) != np.sign(vre_upper)):
+            keep_decision = r"disp"
+        else:
+            keep_decision = r"rot"
+        vre_string = "V(RE)="+val+"-"+lower+"+"+upper+', '+keep_decision
     fig.gca().annotate(vre_string, xy=(.62, 0.), xycoords="figure fraction",
                         xytext=(0,2), textcoords="offset points",
                         ha="right", va="bottom")
@@ -176,12 +197,21 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True):
                     fitEmis2D.mcmc_results.err_theta_2sig[wh_vre][0]
     vre_upper = fitEmis2D.mcmc_results.bestfit_theta[wh_vre] + \
                     fitEmis2D.mcmc_results.err_theta_2sig[wh_vre][1]
-    if (np.sign(vre_lower) != np.sign(vre_upper)):
-        keep_decision = r"$\mathrm{disp}$"
+    if usetex:
+        if (np.sign(vre_lower) != np.sign(vre_upper)):
+            keep_decision = r"$\mathrm{disp}$"
+        else:
+            keep_decision = r"$\mathrm{rot}$"
+        vre_string = r"$V(R_E)="+val+r"^{"+upper+r"}_{"+lower+r"}$, $2 \sigma$"
+        vre_string = vre_string+", "+keep_decision+r', $%0.3f$' % percent_othersign + r'$ \% \, \mathrm{opp}$'
     else:
-        keep_decision = r"$\mathrm{rot}$"
-    vre_string = r"$V(R_E)="+val+r"^{"+upper+r"}_{"+lower+r"}$, $2 \sigma$"
-    vre_string = vre_string+", "+keep_decision+r', $%0.3f$' % percent_othersign + r'$ \% \, \mathrm{opp}$'
+        if (np.sign(vre_lower) != np.sign(vre_upper)):
+            keep_decision = r"disp"
+        else:
+            keep_decision = r"rot"
+        vre_string = r"V(RE)="+val+r"-"+lower+r"+"+upper+r", 2 sigma"
+        vre_string = vre_string+", "+keep_decision+r', %0.3f' % percent_othersign + r'% opp'
+
     fig.gca().annotate(vre_string, xy=(.99, 0.), xycoords="figure fraction",
                         xytext=(0,2), textcoords="offset points",
                         ha="right", va="bottom")

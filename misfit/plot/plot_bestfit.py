@@ -11,6 +11,8 @@ import numpy as np
 import os
 import matplotlib
 
+#matplotlib.rcParams['text.usetex'] = False
+
 import six
 
 from matplotlib.colors import colorConverter
@@ -30,7 +32,7 @@ from misfit.general import general_utils as utils
 
 
 
-def plot_bestfit_model(fitEmis2D, fileout=None, noTitles=False, verbose=False):
+def plot_bestfit_model(fitEmis2D, fileout=None, noTitles=False, verbose=False, usetex=True):
     """
     Input:
         FitEmis2D object: contains
