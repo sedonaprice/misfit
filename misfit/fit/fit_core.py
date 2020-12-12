@@ -191,6 +191,7 @@ def run_mcmc(fitEmis2D, fitEmis2D_fit=None):
         may want to fully setup model (eg, do fitEmis2D.setup_model(thetaSettings=thetaSettings))
         and then delete attributes
     """
+    print("fitting with emcee version: {}".format(emcee.__version__))
     if np.int(emcee.__version__[0]) >= 3:
         fitEmis2D = _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=fitEmis2D_fit)
     else:
