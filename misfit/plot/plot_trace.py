@@ -19,7 +19,7 @@ from matplotlib import cm
 
 import six
 
-def plot_trace(sampler_dict, fitEmis2D, fileout=None):
+def plot_trace(sampler_dict, fitEmis2D, fileout=None, usetex=True):
     names = []
 
     for i in six.moves.xrange(len(fitEmis2D.kinModel.theta)):
