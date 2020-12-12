@@ -392,7 +392,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
             #     f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
             #     acor_time = None
             try:
-                acor_time = sampler.get_autocorr_time(self, low=5, c=10)
+                acor_time = sampler.get_autocorr_time(low=5, c=10)
                 f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
             except RuntimeError:
                 f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
