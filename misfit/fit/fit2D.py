@@ -164,7 +164,7 @@ class FitEmissionLines2D(object):
         # Skip prep calcs: eg, fast creation for re-read of saved objects:
         self.skip_fit_prep_calcs = False
 
-        self.usetex
+        self.usetex = usetex
 
         self.setAttr(**kwargs)
 
