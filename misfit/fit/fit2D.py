@@ -164,7 +164,7 @@ class FitEmissionLines2D(object):
         # Skip prep calcs: eg, fast creation for re-read of saved objects:
         self.skip_fit_prep_calcs = False
 
-        self.usetex = usetex
+        self.usetex
 
         self.setAttr(**kwargs)
 
@@ -397,7 +397,7 @@ class FitEmissionLines2D(object):
     def reload_sampler(self):
         if self.mcmcOptions.filename_sampler is not None:
             # Save stuff to file, for future use:
-            self.sampler_dict = _fitio.loadpickle(self.mcmcOptions.filename_sampler)
+            self.sampler_dict = fit_io.loadpickle(self.mcmcOptions.filename_sampler)
 
 
     def reload_bestfit_model(self):
