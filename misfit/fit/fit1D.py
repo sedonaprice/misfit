@@ -243,6 +243,8 @@ class FitEmissionLines1D(object):
         result = lmfit.minimize(emisModel.residual1DProfile, params,
                 args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
                     self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+
+        raise ValueError
         if (result.params['vel_disp'].value < 0.) & (result.params['flux0'].value < 0.):
             params = self.make_params(vel_disp_bound=True, flux_bound=True)
             result = lmfit.minimize(emisModel.residual1DProfile, params,
