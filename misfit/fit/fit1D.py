@@ -163,7 +163,7 @@ class FitEmissionLines1D(object):
         self.galaxy.spec1D_trim.mask_edges()
 
     #
-    def make_params(self, vel_disp_bound=False):
+    def make_params(self, flux_bound=False, vel_disp_bound=False):
         """
         Initialize the LMFIT fitting parameters class with values and fit ranges.
         """
@@ -176,8 +176,12 @@ class FitEmissionLines1D(object):
         else:
             params.add('vel_disp', value=self.vel_disp)#, min=0.)
 
-        for i in six.moves.xrange(len(self.names_arr)):
-            params.add('flux'+str(i), value=self.flux_arr[i])
+        if flux_bound:
+            for i in six.moves.xrange(len(self.names_arr)):
+                params.add('flux'+str(i), value=self.flux_arr[i], min=0.)
+        else:
+            for i in six.moves.xrange(len(self.names_arr)):
+                params.add('flux'+str(i), value=self.flux_arr[i])
 
         for i in six.moves.xrange(self.cont_order+1):
             params.add('cont_coeff'+str(i), value=self.cont_coeff[i])
@@ -239,11 +243,22 @@ class FitEmissionLines1D(object):
         result = lmfit.minimize(emisModel.residual1DProfile, params,
                 args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
                     self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
-        if result.params['vel_disp'].value < 0.:
+        if (result.params['vel_disp'].value < 0.) & (result.params['flux0'].value < 0.):
+            params = self.make_params(vel_disp_bound=True, flux_bound=True)
+            result = lmfit.minimize(emisModel.residual1DProfile, params,
+                args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
+                    self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+        elif (result.params['vel_disp'].value < 0.):
             params = self.make_params(vel_disp_bound=True)
             result = lmfit.minimize(emisModel.residual1DProfile, params,
                 args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
                     self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+        elif (result.params['flux0'].value < 0.):
+            params = self.make_params(flux_bound=True)
+            result = lmfit.minimize(emisModel.residual1DProfile, params,
+                args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
+                    self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+
         ########################################################
         # Save the restuls:
         self.lmfit_result = result
