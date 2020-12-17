@@ -236,6 +236,8 @@ class FitEmissionLines1D(object):
 
         params = self.make_params()
 
+        raise ValueError
+
         emisModel = EmissionLinesSpectrum1DModel(names_arr=self.names_arr,
                         cont_order=self.cont_order, shape1D=self.shape1D)
 
@@ -260,6 +262,25 @@ class FitEmissionLines1D(object):
             result = lmfit.minimize(emisModel.residual1DProfile, params,
                 args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
                     self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+
+        #if not result.errorbars:
+        #    fix_cont = True
+        #    fix_z = True
+        #    fix_flux = True
+        #    params['z'].vary = False
+        #    params['cont_coeff0'].vary = False
+        #    params['cont_coeff1'].vary = False
+        #    params['flux0'].vary = False
+        #    result = lmfit.minimize(emisModel.residual1DProfile, params,
+        #        args=(self.galaxy.spec1D_trim.obswave, self.galaxy.spec1D_trim.flux,
+        #            self.galaxy.spec1D_trim.flux_err, self.galaxy.spec1D_trim.spec_mask))
+        #else:
+        #    fix_cont = False
+        #    fix_z = False
+        #    fix_flux = False
+        fix_cont = False
+        fix_z = False
+        fix_flux = False
 
         ########################################################
         # Save the restuls:
@@ -371,12 +392,18 @@ class FitEmissionLines1D(object):
                     params_best.add('z', value=self.z, min=self.galaxy.z-self.del_obs_lam/self.restwave_arr[0][0],
                                 max=self.galaxy.z+self.del_obs_lam/self.restwave_arr[0][0])
                     params_best.add('vel_disp', value=self.vel_disp)#, min=0.)
+                    if fix_z:
+                        params_best['z'].vary = False
 
                     for jj in six.moves.xrange(len(self.names_arr)):
                         params_best.add('flux'+str(jj), value=self.flux_arr[jj])
+                        if fix_flux:
+                            params_best['flux'+str(jj)].vary = False
 
                     for jj in six.moves.xrange(self.cont_order+1):
                         params_best.add('cont_coeff'+str(jj), value=self.cont_coeff[jj])
+                        if fix_cont:
+                            params_best['cont_coeff'+str(jj)].vary = False
 
                     #now fit the perturbed spectrum:
                     result_mc = lmfit.minimize(emisModel.residual1DProfile, params_best,
@@ -419,7 +446,7 @@ class FitEmissionLines1D(object):
             self.cont_coeff_err =   \
                 values_err[len(self.names_arr)+2:len(self.names_arr)+2+self.cont_order+1,:]
 
-
+            raise ValueError
 
         else:
             print( "Not doing errors")
