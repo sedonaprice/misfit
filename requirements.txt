@@ -3,7 +3,7 @@ scipy
 astropy
 matplotlib
 astropy.wcs
-lmfit  
+lmfit
 
 psutil
 numba/jit
@@ -15,7 +15,3 @@ time
 datetime
 
 corner (dfm / github)
-
-## sedonaprice/corner.py (forked from dfm/corner.py) -- suppy as corner_annotated under misfit
-
-
