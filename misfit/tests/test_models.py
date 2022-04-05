@@ -125,8 +125,31 @@ class HelperSetups(object):
 
 
 
-class TestModels:
+class TestModelsDisp:
     helper = HelperSetups()
+
+    def test_AperModel1DDisp(self):
+        inst = self.helper.setup_instrument()
+        gal = self.helper.setup_galaxy(inst=inst)
+
+        # Use -FWHM to +FWHM for extrac width
+        extraction_width = 2. * inst.PSF.PSF_FWHM
+        extraction_method = 'optimal'
+        nPixels_apermodel = 201
+
+        # Elliptical: dispersion + misalignment in slit
+        aperModel1DDisp = misfit.model.AperModel1DDisp(galaxy=gal,
+            instrument=inst,extraction_width=extraction_width,
+            extraction_method=extraction_method,
+            disp_aper_radius_arcsec=gal.re_arcsec*np.sqrt(gal.q),
+            nPixels=np.int(np.round((nPixels_apermodel-1)/2)))
+        disp_aper_ratio = aperModel1DDisp.disp_aper_ratio
+        print(disp_aper_ratio)
+
+        ftol = 1.e-9
+        # This case just uses deltPA = 0, and q=1 (the spherical approx)
+        disp_aper_ratio_true = 0.9883303067395043
+        assert math.isclose(disp_aper_ratio, disp_aper_ratio_true, rel_tol=ftol)
 
     def test_AperModel1DDispMisalign(self):
         inst = self.helper.setup_instrument()
@@ -147,7 +170,8 @@ class TestModels:
         print(disp_aper_ratio)
 
         ftol = 1.e-9
-        disp_aper_ratio_true = 0.9884434977112926
+        # disp_aper_ratio_true = 0.9884434977112926 # old method, involving rotation calcs
+        disp_aper_ratio_true = 0.9888142642293415
         assert math.isclose(disp_aper_ratio, disp_aper_ratio_true, rel_tol=ftol)
 
 
@@ -170,9 +194,38 @@ class TestModels:
         print(disp_aper_ratio)
 
         ftol = 1.e-9
-        disp_aper_ratio_true = 0.9892714489739454
+        #disp_aper_ratio_true = 0.9892714489739454  # old method, involving rotation calcs
+        disp_aper_ratio_true = 0.9903832322294895
         assert math.isclose(disp_aper_ratio, disp_aper_ratio_true, rel_tol=ftol)
 
+    def test_AperModel1DDispMisalign_deltPA60_offset(self):
+        inst = self.helper.setup_instrument()
+        gal = self.helper.setup_galaxy(inst=inst, delt_PA=60.)
+
+        # Use -FWHM to +FWHM for extrac width
+        extraction_width = 2. * inst.PSF.PSF_FWHM
+        extraction_method = 'optimal'
+        nPixels_apermodel = 201
+
+        xc = 1. # offset of slit in x direction, in ARCSECS
+
+        # Elliptical: dispersion + misalignment in slit
+        aperModel1DDispMisalign = misfit.model.AperModel1DDispMisalign(galaxy=gal,
+            instrument=inst,extraction_width=extraction_width,
+            extraction_method=extraction_method,
+            disp_aper_radius_arcsec=gal.re_arcsec*np.sqrt(gal.q),
+            nPixels=np.int(np.round((nPixels_apermodel-1)/2)),
+            xc=xc)
+        disp_aper_ratio = aperModel1DDispMisalign.disp_aper_ratio
+        print(disp_aper_ratio)
+
+        ftol = 1.e-9
+        disp_aper_ratio_true = 0.9045425257539351  # xc=0 value: 0.9903832322294895
+        assert math.isclose(disp_aper_ratio, disp_aper_ratio_true, rel_tol=ftol)
+
+
+class TestModelsRot:
+    helper = HelperSetups()
 
     def test_AperModel1DRot(self):
         inst = self.helper.setup_instrument()

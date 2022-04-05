@@ -15,9 +15,8 @@ from scipy import integrate
 from scipy.stats import norm
 import six
 
-from skimage.transform import rotate as skimagerotate
-
-from scipy.ndimage.interpolation import map_coordinates as scipymapcoords
+# from skimage.transform import rotate as skimagerotate
+# from scipy.ndimage.interpolation import map_coordinates as scipymapcoords
 
 
 import lmfit
@@ -672,7 +671,178 @@ def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec
 #
 ########################################################
 ########################################################
-def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec=None):
+def sigma_aper_dispersion_misalign(aperModel1DDisp = None,
+            re_arcsec=None, re_mass_arcsec=None):
+    # Change 2022-04-05: Do direct calculation, with rotation already included in
+    #                    the coordinates, instead of rotating arrays.
+
+    sig_sq_wide = disp_square(aperModel1DDisp.x_arr_full, aperModel1DDisp.y_arr_full,
+                    q=aperModel1DDisp.galaxy.q, delt_PA=aperModel1DDisp.galaxy.delt_PA,
+                    re_mass_arcsec=re_mass_arcsec,
+                    r_core=aperModel1DDisp.r_core)
+
+
+    I_wide  = Igal(aperModel1DDisp.x_arr_full, aperModel1DDisp.y_arr_full,
+                        q=aperModel1DDisp.galaxy.q, delt_PA=aperModel1DDisp.galaxy.delt_PA,
+                        re_arcsec=re_arcsec, n=aperModel1DDisp.galaxy.n,
+                        r_core=aperModel1DDisp.r_core)
+
+    ## Mask any NaN values with zero:
+    #I_wide[~np.isfinite(I_wide)] = 0.
+    #sig_sq_wide[~np.isfinite(sig_sq_wide)] = 0.
+    sigsq_I_wide = sig_sq_wide*I_wide
+
+    # -----------------------------------------------
+    # Convolve arrays with seeing:
+    if aperModel1DDisp.instrument.PSF.PSF_FWHM > 0.:
+        # Get covoluation array:
+        # seeing_wide = PSF_stamp_multid(aperModel1DDisp.xp_arr_full,
+        #             aperModel1DDisp.yp_arr_full,
+        #             aperModel1DDisp.instrument.PSF)
+        seeing_wide = aperModel1DDisp.instrument.PSF._conv_stamp
+        sigsq_I_conv_wide = fftconvolve(sigsq_I_wide, seeing_wide, mode='same')
+        I_conv_wide = fftconvolve(I_wide, seeing_wide, mode='same')
+    else:
+        sigsq_I_conv_wide = sigsq_I_wide
+        I_conv_wide = I_wide
+
+    # ## -----------------------------------------------
+    # interp_order = 5
+    #
+    # # ROTATE arrays:
+    # if np.abs(aperModel1DDisp.galaxy.delt_PA) > 0.:
+    #     I_conv_rot = skimagerotate(I_conv_wide, aperModel1DDisp.galaxy.delt_PA,
+    #                             order=interp_order,
+    #                             cval=0.,preserve_range=True)
+    #     sigsq_I_conv_rot = skimagerotate(sigsq_I_conv_wide, aperModel1DDisp.galaxy.delt_PA,
+    #                             order=interp_order,
+    #                             cval=0.,preserve_range=True)
+    #
+    # else:
+    #     I_conv_rot = I_conv_wide.copy()
+    #     sigsq_I_conv_rot = sigsq_I_conv_wide.copy()
+    # # has shape nYp, nXp (square, based on y_aper_half)
+    #
+    #
+    # ## -----------------------------------------------
+    # # Map coordinates onto gridsize where we can do easy trimming to get rid of padding:
+    # # delt_y should be same as delt_yp, as original sizes were chosen based on y_aper_half.
+    # # choose new delt_x very close to delt_xp, to avoid oversampling.
+    # # But needs to satisfy delt_x = x_aper_half/(n_pix_x+0.5)
+    # # Should be n_pix_x+0.5 across x_aper_half
+    # aperModel1DDisp.n_pix_x = np.int(np.round((0.5*aperModel1DDisp.x_aper/\
+    #                         aperModel1DDisp.delt_xp) - 0.5))
+    # aperModel1DDisp.delt_x = (0.5*aperModel1DDisp.x_aper)/(aperModel1DDisp.n_pix_x+0.5)
+    # #               calculate the new value of delt_x
+    # aperModel1DDisp.padX = aperModel1DDisp.n_pix_x+1
+    # aperModel1DDisp.nX = 2*(aperModel1DDisp.n_pix_x + aperModel1DDisp.padX) + 1
+    #
+    # aperModel1DDisp.n_pix_y = aperModel1DDisp.nPixels
+    # aperModel1DDisp.padY = aperModel1DDisp.padYp
+    # aperModel1DDisp.delt_y = aperModel1DDisp.delt_yp
+    # aperModel1DDisp.nY = aperModel1DDisp.nYp
+    #
+    # # Need to define new full arrays:
+    # # coordinates at each point:
+    # # coordinates at each point:
+    # aperModel1DDisp.x_arr = np.linspace(-(aperModel1DDisp.n_pix_x+aperModel1DDisp.padX)*\
+    #             aperModel1DDisp.delt_x,
+    #                 (aperModel1DDisp.n_pix_x+aperModel1DDisp.padX)*aperModel1DDisp.delt_x,
+    #                 num=aperModel1DDisp.nX)
+    # aperModel1DDisp.y_arr = np.linspace(-(aperModel1DDisp.n_pix_y+aperModel1DDisp.padY)*\
+    #             aperModel1DDisp.delt_y,
+    #                 (aperModel1DDisp.n_pix_y+aperModel1DDisp.padY)*aperModel1DDisp.delt_y,
+    #                 num=aperModel1DDisp.nY)
+    # # x_arr, y_arr are in *ARCSECONDS*
+    #
+    #
+    # # Need to make map coords be in terms of index rel to original array:
+    # #   ie (float) index of x_arr in xp_arr coordinates.
+    # aperModel1DDisp.x_coord = (aperModel1DDisp.x_arr.min()-aperModel1DDisp.xp_arr.min())/\
+    #             aperModel1DDisp.delt_xp + \
+    #                 np.linspace(0,aperModel1DDisp.nX-1,num=aperModel1DDisp.nX)*\
+    #                     aperModel1DDisp.delt_x/aperModel1DDisp.delt_xp
+    # aperModel1DDisp.y_coord = np.linspace(0,aperModel1DDisp.nY-1,num=aperModel1DDisp.nY)
+    #
+    #
+    # aperModel1DDisp.x_coord_full = np.tile(aperModel1DDisp.x_coord, (aperModel1DDisp.nY,1))
+    # aperModel1DDisp.y_coord_full = np.tile(np.array([aperModel1DDisp.y_coord]).T,
+    #                             (1,aperModel1DDisp.nX))
+    # aperModel1DDisp.xcoordfull_flat = aperModel1DDisp.x_coord_full.ravel()
+    # aperModel1DDisp.ycoordfull_flat = aperModel1DDisp.y_coord_full.ravel()
+    #
+    # # coordinates = [rowcoords,  colcoords]
+    # I_conv_map = scipymapcoords(I_conv_rot, [aperModel1DDisp.ycoordfull_flat,
+    #             aperModel1DDisp.xcoordfull_flat],
+    #                 order=interp_order)
+    # sigsq_I_conv_map = scipymapcoords(sigsq_I_conv_rot, [aperModel1DDisp.ycoordfull_flat,
+    #             aperModel1DDisp.xcoordfull_flat],
+    #                 order=interp_order)
+    #
+    # I_conv_map = I_conv_map.reshape((aperModel1DDisp.nY,aperModel1DDisp.nX))
+    # sigsq_I_conv_map = sigsq_I_conv_map.reshape((aperModel1DDisp.nY,aperModel1DDisp.nX))
+
+
+
+
+
+    aperModel1DDisp.n_pix_x = np.int(np.round((0.5*aperModel1DDisp.x_aper/\
+                            aperModel1DDisp.delt_x) - 0.5))
+    aperModel1DDisp.delt_x = (0.5*aperModel1DDisp.x_aper)/(aperModel1DDisp.n_pix_x+0.5)
+    #               calculate the new value of delt_x
+    aperModel1DDisp.padX = aperModel1DDisp.n_pix_x+1
+    aperModel1DDisp.nX = 2*(aperModel1DDisp.n_pix_x + aperModel1DDisp.padX) + 1
+
+    aperModel1DDisp.n_pix_y = aperModel1DDisp.nPixels
+    # aperModel1DDisp.padY = aperModel1DDisp.padYp
+    # aperModel1DDisp.delt_y = aperModel1DDisp.delt_yp
+    # aperModel1DDisp.nY = aperModel1DDisp.nYp
+
+
+
+    ## -----------------------------------------------
+    # Now trim these down to the proper size, getting rid of edge effects:
+    # Trim in x, y:
+    xtrim = [aperModel1DDisp.padX,2*aperModel1DDisp.n_pix_x+aperModel1DDisp.padX+1]
+    ytrim = [aperModel1DDisp.padY,2*aperModel1DDisp.n_pix_y+aperModel1DDisp.padY+1]
+
+    sigsq_I_conv = sigsq_I_conv_wide[ytrim[0]:ytrim[1],xtrim[0]:xtrim[1]]
+    I_conv = I_conv_wide[ytrim[0]:ytrim[1],xtrim[0]:xtrim[1]]
+
+
+    # -----------------------------------------------
+    # Sum to find sigma_sq in aperture:
+    if aperModel1DDisp.extraction_method == 'optimal':
+        prof_sigma = (0.5*aperModel1DDisp.extraction_width/aperModel1DDisp.delt_y)/\
+                    (2.*np.sqrt(2.*np.log(2.)))
+        # y extent = number of ROWS - shape[0]
+        yy_prof = np.array(six.moves.xrange(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
+
+        g_y = norm.pdf(yy_prof, 0., prof_sigma)
+        g_y = g_y/np.sum(g_y)  # normalize
+
+        G_y = np.tile(np.array([g_y]).transpose(), (1, I_conv.shape[1]))
+    elif aperModel1DDisp.extraction_method == 'boxcar':
+        G_y = np.ones(I_conv.shape)
+    else:
+        raise ValueError('Extraction method not currently supported: '+aperModel1DDisp.extraction_method)
+
+    sigmasq_aper = np.sum(sigsq_I_conv*G_y*aperModel1DDisp.delt_x*aperModel1DDisp.delt_y)/\
+                    np.sum(I_conv*G_y*aperModel1DDisp.delt_x*aperModel1DDisp.delt_y)
+    sigma_aper = np.sqrt(sigmasq_aper)
+
+
+    # -----------------------------------------------
+    # Inclination is also included in sigma_e, so sigma_aper/sigma_e
+    #       only has the *ROTATION* part depend on inclination
+
+    return sigma_aper
+
+
+
+########################################################
+########################################################
+def sigma_aper_dispersion_misalign_ORIG(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec=None):
     sig_sq_wide = disp_square(aperModel1DDisp.xp_arr_full, aperModel1DDisp.yp_arr_full,
                     q=aperModel1DDisp.galaxy.q, delt_PA=aperModel1DDisp.delt_PAp,
                     re_mass_arcsec=re_mass_arcsec,
@@ -818,7 +988,6 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None, re_arcsec=None, re_ma
     #       only has the *ROTATION* part depend on inclination
 
     return sigma_aper
-
 
 #@jit
 @njit

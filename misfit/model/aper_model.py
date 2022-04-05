@@ -33,6 +33,11 @@ class AperModel1DBase(object):
         self.disp_aper_ratio = None
 
 
+        # Position of galaxy within slit:
+        self.xc = 0.    # Spatial direction offest, in ARCSEC.
+        self.yc = 0.    # Defined to be 0 given how an aperture is extracted. in arcsec.
+
+
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
@@ -99,37 +104,43 @@ class AperModel1DDispBase(AperModel1DBase):
         # x_arr, y_arr are in *ARCSECONDS*
 
 
+        # Offset by xc, yc, if non-zero:
+        self.x_arr = self.x_arr - self.xc
+        self.y_arr = self.y_arr - self.yc
+
         self.x_arr_full = np.tile(self.x_arr, (self.nY,1))
         self.y_arr_full = np.tile(np.array([self.y_arr]).T, (1,self.nX))
 
-        ###########################
-        ###########################
-        # Setup grid for rotate case:
 
-        self.nXp = 4*self.nPixels+3
-        self.nYp = 4*self.nPixels+3
-        self.padXp = self.nPixels+1
-        self.padYp = self.nPixels+1
 
-        # WE WILL NEED TO TRIM TO x_aper, y_aper later, after rotation. For now:
-        self.xp_aper = self.extraction_width
-        self.yp_aper = self.extraction_width
-
-        # Should be 2*n_pix_xp + 1 across xp_aper_full
-        # or n_pix_xp+0.5 across xp_aper_half
-        self.delt_xp = 0.5*self.xp_aper/(self.nPixels+0.5)
-        self.delt_yp = 0.5*self.yp_aper/(self.nPixels+0.5)
-
-        # coordinates at each point:
-        self.xp_arr = np.linspace(-(self.nPixels+self.padXp)*self.delt_xp,
-                                (self.nPixels+self.padXp)*self.delt_xp, num=self.nXp)
-        self.yp_arr = np.linspace(-(self.nPixels+self.padYp)*self.delt_yp,
-                                (self.nPixels+self.padYp)*self.delt_yp, num=self.nYp)
-        # x_arr, y_arr are in *ARCSECONDS*
-        self.xp_arr_full = np.tile(self.xp_arr, (self.nYp,1))
-        self.yp_arr_full = np.tile(np.array([self.yp_arr]).T, (1,self.nXp))
-
-        self.delt_PAp = 0.
+        # ###########################
+        # ###########################
+        # # Setup grid for rotate case:
+        #
+        # self.nXp = 4*self.nPixels+3
+        # self.nYp = 4*self.nPixels+3
+        # self.padXp = self.nPixels+1
+        # self.padYp = self.nPixels+1
+        #
+        # # WE WILL NEED TO TRIM TO x_aper, y_aper later, after rotation. For now:
+        # self.xp_aper = self.extraction_width
+        # self.yp_aper = self.extraction_width
+        #
+        # # Should be 2*n_pix_xp + 1 across xp_aper_full
+        # # or n_pix_xp+0.5 across xp_aper_half
+        # self.delt_xp = 0.5*self.xp_aper/(self.nPixels+0.5)
+        # self.delt_yp = 0.5*self.yp_aper/(self.nPixels+0.5)
+        #
+        # # coordinates at each point:
+        # self.xp_arr = np.linspace(-(self.nPixels+self.padXp)*self.delt_xp,
+        #                         (self.nPixels+self.padXp)*self.delt_xp, num=self.nXp)
+        # self.yp_arr = np.linspace(-(self.nPixels+self.padYp)*self.delt_yp,
+        #                         (self.nPixels+self.padYp)*self.delt_yp, num=self.nYp)
+        # # x_arr, y_arr are in *ARCSECONDS*
+        # self.xp_arr_full = np.tile(self.xp_arr, (self.nYp,1))
+        # self.yp_arr_full = np.tile(np.array([self.yp_arr]).T, (1,self.nXp))
+        #
+        # self.delt_PAp = 0.
 
 
 
@@ -190,9 +201,9 @@ class AperModel1DDispMisalign(AperModel1DDispBase):
                     delt_PA=self.galaxy.delt_PA)
 
         # Set PSF convolution:
-        cent = [np.mean(self.xp_arr), np.mean(self.yp_arr)]
-        x_off_arc = self.xp_arr-cent[0]
-        y_off_arc = self.yp_arr-cent[1]
+        cent = [np.mean(self.x_arr), np.mean(self.y_arr)]
+        x_off_arc = self.x_arr-cent[0]
+        y_off_arc = self.y_arr-cent[1]
         conv_stamp = self.instrument.PSF.generate_conv_stamp(x_off_arc, y_off_arc)
         self.instrument.PSF.set_conv_stamp(conv_stamp)
 
@@ -219,9 +230,9 @@ class AperModel1DRot(AperModel1DBase):
 
         self.pad_factor = 0.5
 
-        # Position of galaxy within slit:
-        self.xc = 0.    # Spatial direction offest, in ARCSEC.
-        self.yc = 0.    # Defined to be 0 given how an aperture is extracted. in arcsec.
+        # # Position of galaxy within slit:
+        # self.xc = 0.    # Spatial direction offest, in ARCSEC.
+        # self.yc = 0.    # Defined to be 0 given how an aperture is extracted. in arcsec.
 
         # theta should be kin input:
         # theta should be [V/sigma_RE, V_tmp, r_t]
