@@ -8,3 +8,6 @@
 
 *__pycache__*
 
+
+# Private data
+tests/PYTEST_OUTPUT/
