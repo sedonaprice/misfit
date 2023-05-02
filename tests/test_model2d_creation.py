@@ -1,4 +1,4 @@
-# misfit/tests/test_model2d.py
+# misfit/tests/test_model2d_creation.py
 # Test functionality, speed of 2D MISFIT models
 #
 # Copyright 2019 Sedona Price <sedona.price@gmail.com>.

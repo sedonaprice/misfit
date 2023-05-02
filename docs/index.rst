@@ -1,17 +1,42 @@
-Documentation
-=============
+.. misfit documentation main file, created by
+   sphinx-quickstart
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-This is the documentation for misfit.
+==========
+``misfit``
+==========
 
+   ..  TOMAKE.rst
 
 .. toctree::
-  :maxdepth: 2
+   :maxdepth: 1
+   :caption: Reference/API:
 
-  misfit/index.rst
+   api.rst
 
-.. note:: The layout of this directory is simply a suggestion.  To follow
-          traditional practice, do *not* edit this page, but instead place
-          all documentation for the affiliated package inside ``misfit/``.
-          The traditional practice was intended to allow the affiliated
-          package to eventually be merged into the main astropy package.
-          You can follow this practice or choose your own layout.
+
+.. 
+  .. automodapi:: misfit
+
+
+.. 
+  .. toctree::
+..    :maxdepth: 2
+..    :caption: Tutorials:
+
+..    tutorials/dysmalpy_quickstart_example.rst
+..    tutorials/models/index.rst
+..    tutorials/fitting/index.rst
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+.. * :ref:`search`
+
+
+

@@ -1,7 +1,9 @@
 # coding=utf8
-# Licensed under a 3-clause BSD style license - see LICENSE.rst
+# misfit/tests/test_models.py
+# Test MISFIT models
 #
-# Testing of DYSMALPY model (component) calculations
+# Copyright 2022-2023 Sedona Price <sedona.price@gmail.com>.
+# Licensed under a 3-clause BSD style license - see LICENSE.rst
 
 # import os
 # import shutil
