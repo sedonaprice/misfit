@@ -18,7 +18,7 @@ except:
     from . import general_utils as utils
     from . import io
 
-import six
+# import six
 
 import lmfit
 
@@ -27,9 +27,10 @@ def trim_spectrum_1D(spec1D, galaxy, trim_restwave_range=None,
                 param_restwave_filename=None, linename=None):
     """
     Method to trim the 1D spectrum to a given wavelength range.
-    Either input trim_restwave_range (and have galaxy.z set) to do in restframe,
-            or   trim_obsframe_range  to trim in observed frame
-            or   param_restwave_filename and linename  to read the set from a parameters file.
+    Either input: 
+    trim_restwave_range (and have galaxy.z set) to do in restframe, or 
+    trim_obsframe_range to trim in observed frame, or 
+    param_restwave_filename and linename  to read the set from a parameters file.
     """
 
     if (galaxy.z is None) and (trim_obswave_range is None):
@@ -81,9 +82,10 @@ def trim_spectrum_2D_wavelength(spec2D, galaxy,
             linename=None, inplace=True):
     """
     Method to trim the 2D spectrum to a given wavelength range.
-    Either input trim_restwave_range (and have galaxy.z set) to do in restframe,
-            or   trim_obsframe_range  to trim in observed frame
-            or   param_restwave_filename and linename  to read the set from a parameters file.
+    Either input: 
+    trim_restwave_range (and have galaxy.z set) to do in restframe, or 
+    trim_obsframe_range to trim in observed frame, or 
+    param_restwave_filename and linename  to read the set from a parameters file.
     """
 
     if (trim_restwave_range is None) & (trim_obswave_range is None) & ((param_restwave_filename is None) & (linename is None)):
@@ -174,7 +176,7 @@ def trim_spectrum_2D_wavelength(spec2D, galaxy,
 def trim_spectrum_2D_spatial(spec2D, galaxy, instrument):
     """
     Method to trim the 2D spectrum to a given spatial range.
-        Trim vertically: identify yposition and bounding pixel indices:
+    Trim vertically: identify yposition and bounding pixel indices:
     """
 
 
@@ -450,7 +452,7 @@ def subtract_continuum_2D(spec2D, galaxy, fill_value=-99., no_cont_subtraction=F
         ######################################
         # Perform continuum subtraction on spec2D:
 
-        for i in six.moves.xrange(np.shape(spec2D.flux)[0]):
+        for i in range(np.shape(spec2D.flux)[0]):
             params = lmfit.Parameters()
             params.add('a', value=slope, vary=False)
             params.add('b', value=result_1d.params['b'].value)
@@ -576,7 +578,7 @@ def mask_skylines_2D(flux=None, err=None, weight=None, mask=None,
     #
 
 
-    wh_nosky = np.setdiff1d(six.moves.xrange(np.shape(flux)[1]), wh_sky)
+    wh_nosky = np.setdiff1d(range(np.shape(flux)[1]), wh_sky)
 
     return mask_sky, wh_sky, wh_nosky
 
@@ -601,7 +603,7 @@ def mask_low_snr_rows_2D(flux=None, err=None, mask=None, mask_calc=None,
                 high_snr_inds_new.extend(wh)
         high_snr_inds = np.array(high_snr_inds_new)
 
-    low_snr_row_inds = np.setdiff1d(six.moves.xrange(len(snr_arr)), high_snr_inds)
+    low_snr_row_inds = np.setdiff1d(range(len(snr_arr)), high_snr_inds)
 
     # Mask contigious: to outside if we've hit a low S/N row:
     if (len(low_snr_row_inds) > 0) & (len(high_snr_inds) > 0):
@@ -780,10 +782,15 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
     """
     Find vertical (spatial) pixel num of center of (pos) line profile,
     at a given wavelength.
-    Output:
-        m0:     center pixel
-        m_min:  lower pixel
-        m_max:  upper pixel
+
+    Output
+    ------
+        m0 :     
+            center pixel
+        m_min :  
+            lower pixel
+        m_max :  
+            upper pixel
     """
 
     # Replace missing errors with large errors:
@@ -874,7 +881,7 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
         params.add('C', value=0.)
         params.add('sigma', value=10., min=0.)
 
-        xx = np.array(six.moves.xrange(len(sp_arr)))
+        xx = np.array(range(len(sp_arr)))
 
         if dither:
             result = lmfit.minimize(utils.vert_triple_gaus_residual, params,
@@ -959,7 +966,7 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
                 params.add('C', value=0.)
                 params.add('sigma', value=10., min=0.)
 
-                xx = np.array(six.moves.xrange(len(sp_arr)))
+                xx = np.array(range(len(sp_arr)))
                 if dither:
                     result = lmfit.minimize(utils.vert_triple_gaus_residual, params,
                                 args=(xx, sp_arr, err_arr))
@@ -1055,7 +1062,7 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
                 params.add('C', value=0.)
                 params.add('sigma', value=5., min=0.)
 
-                xx = np.array(six.moves.xrange(len(sp_arr)))
+                xx = np.array(range(len(sp_arr)))
 
                 if dither:
                     result = lmfit.minimize(utils.vert_triple_gaus_residual, params,
@@ -1131,7 +1138,7 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
             params.add('C', value=0.)
             params.add('sigma', value=5., min=0.)
 
-            xx = np.array(six.moves.xrange(len(sp_arr)))
+            xx = np.array(range(len(sp_arr)))
 
             if dither:
                 result = lmfit.minimize(utils.vert_triple_gaus_residual, params,
@@ -1183,7 +1190,7 @@ def vert_position(flux=None, err=None, obswave=None, obswave_val=None,
         params.add('C', value=0.)
         params.add('sigma', value=5., min=0.)
 
-        xx = np.array(six.moves.xrange(len(sp_arr)))
+        xx = np.array(range(len(sp_arr)))
 
         result = lmfit.minimize(utils.gaus_residual, params,
                         args=(xx, sp_arr, err_arr))
@@ -1280,7 +1287,7 @@ def calculate_2D_fit_weights(spec2D):
         weights_nonnorm[spec2D.low_snr_row_inds] = 0.
     ## ++++++++++++++++++++++++++++++++++++++++++++
     else:
-        print("weighting type '%s' not supported" % spec2D.weighting_type)
+        print("weighting type '{}' not supported".format(spec2D.weighting_type))
 
     ### *******************************************************
 
@@ -1294,7 +1301,7 @@ def calculate_2D_fit_weights(spec2D):
 
 
     spec2D.fitting_weight_profile = weights
-    spec2D.fitting_weight_matrix = np.array([spec2D.fitting_weight_profile for i in six.moves.xrange(spec2D.flux.shape[1])]).T
+    spec2D.fitting_weight_matrix = np.array([spec2D.fitting_weight_profile for i in range(spec2D.flux.shape[1])]).T
 
     return spec2D
 
@@ -1337,7 +1344,7 @@ def get_m0_lam0_pos_2D(spec2D, galaxy):
     yy_arr = np.linspace(spec2D.m_lims[0], spec2D.m_lims[1],
                     num=(spec2D.m_lims[1]-spec2D.m_lims[0]), endpoint=False)
 
-    wh_not_mask_y = np.setdiff1d(six.moves.xrange(len(yy_arr)), spec2D.low_snr_row_inds)
+    wh_not_mask_y = np.setdiff1d(range(len(yy_arr)), spec2D.low_snr_row_inds)
 
 
     # Sum over spatial direction
@@ -1349,7 +1356,6 @@ def get_m0_lam0_pos_2D(spec2D, galaxy):
     n_spatial = spec2D.flux.shape[0]
 
     if (len(wh_not_mask_y) > 0) & (len(wh_not_mask_lam) > 0):
-
 
         #############################
         #############################
@@ -1400,7 +1406,6 @@ def get_m0_lam0_pos_2D(spec2D, galaxy):
 
             # +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-
             if ((result.params['mu'].value >= yy_arr.min()) & \
                  (result.params['mu'].value <= yy_arr.max())):
                 if np.abs(spec2D.ypos -result.params['mu'].value ) <= 2.:
@@ -1425,7 +1430,6 @@ def get_m0_lam0_pos_2D(spec2D, galaxy):
         #############################
         #############################
         #############################
-
 
         # Setup gaus fit for lam0:
         params = lmfit.Parameters()
@@ -1487,8 +1491,8 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
 
     print("spec2D.m_lims={}".format(spec2D.m_lims))
 
-    wh_not_mask_y = np.setdiff1d(six.moves.xrange(len(yy_arr)), spec2D.low_snr_row_inds)
-    #wh_not_mask_y = six.moves.xrange(len(yy_arr))
+    wh_not_mask_y = np.setdiff1d(range(len(yy_arr)), spec2D.low_snr_row_inds)
+    #wh_not_mask_y = range(len(yy_arr))
 
     # if (len(wh_not_mask_y) == 0):
     #     raise ValueError
@@ -1519,7 +1523,6 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
         #params.add('C', value=0.)   # constant offset
 
         try:
-        #if True:
 
             # Check there's even more than PSF FWHM in unmasked rows: otherwise, fits will really not nec. work.
             if len(wh_not_mask_y)*pixscale/inst.PSF.PSF_FWHM < 0.8:
@@ -1572,7 +1575,7 @@ def fit_emission_y_profile(spec2D, gal, inst, filename_plot=None, plot=False, nu
             # Structure of value matrix: columns:
             #  z_fit   vel_disp   flux_line0 ... flux_linen-1  cont_coeff0 .. cont_coeffn-1
 
-            for i in six.moves.xrange(num_MC):
+            for i in range(num_MC):
                 #print "MC error iter %i/%i" % (i+1,self.num_MC)
                 if ( ((i+1) % 50 == 0)):
                     print("MC error iter {:d}/{:d}".format(i+1,num_MC))

@@ -8,14 +8,14 @@ from __future__ import print_function
 
 import numpy as np
 import os
-import six
+# import six
 
 import matplotlib
-
+try:
+    os.environ["DISPLAY"]
+except:
+    matplotlib.use("agg")
 #matplotlib.rcParams['text.usetex'] = False
-#matplotlib.rcParams['text.usetex'] = True
-
-
 
 import matplotlib.pyplot as plt
 
@@ -23,7 +23,9 @@ import corner
 
 def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
             usetex=True):
-
+    """
+    Corner plot for a 2D MCMC fit
+    """
     # Chop off the last two: this is sigma_RE, sigma_2.2
 
 
@@ -57,7 +59,7 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
     l68_unc = sig1err[0,:]
     u68_unc = sig1err[1,:]
     nFreeParam = len(truths)
-    for i in six.moves.xrange(nFreeParam):
+    for i in range(nFreeParam):
         ax = axes[i*nFreeParam + i]
         # Format the quantile display.
         best = truths[i]
@@ -80,7 +82,7 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
 
     # If linked results:
     if (fitEmis2D.theta_linked_posteriors is not None) & (showLinked):
-        for j in six.moves.xrange(len(fitEmis2D.theta_linked_posteriors)):
+        for j in range(len(fitEmis2D.theta_linked_posteriors)):
             ind = fitEmis2D.theta_linked_posteriors[j][0] + fitEmis2D.theta_linked_posteriors[j][1]*\
                     samples.shape[1]
 
@@ -97,7 +99,7 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
             ###
             theta_orig = fitEmis2D.kinModel.kinProfile.theta.copy()
             len_tmp = len(col2arr)
-            for i in six.moves.xrange(len(fitEmis2D.kinModel.kinProfile.theta)):
+            for i in range(len(fitEmis2D.kinModel.kinProfile.theta)):
                 if i in fitEmis2D.theta_linked_posteriors[j]:
                     if i == fitEmis2D.theta_linked_posteriors[j][0]:
                         theta_tmp = np.array([np.ones(len_tmp)])
@@ -150,7 +152,7 @@ def plot_param_corner(fitEmis2D, fileout=None,verbose=False,showLinked=True,
     lower = "%3.2f" % fitEmis2D.mcmc_results.err_theta_1sig[wh_sig][0]
     upper = "%3.2f" % fitEmis2D.mcmc_results.err_theta_1sig[wh_sig][1]
     if usetex:
-        sig_string = "$\sigma="+val+"^{"+upper+"}_{"+lower+"}$"
+        sig_string = r"$\sigma="+val+"^{"+upper+r"}_{"+lower+"}$"
     else:
         sig_string = "sigma="+val+"-"+lower+"+"+upper
     fig.gca().annotate(sig_string, xy=(.33, 0.), xycoords="figure fraction",

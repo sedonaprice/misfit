@@ -1,126 +1,74 @@
 #!/usr/bin/env python
 # Licensed under a 3-clause BSD style license - see LICENSE.rst
 
-import glob
 import os
-import sys
+import re
 
-from setuptools import setup
+import logging
 
-
-# Get some values from the setup.cfg
 try:
-    from ConfigParser import ConfigParser
-except ImportError:
-    from configparser import ConfigParser
+    from setuptools import setup
+except:
+    from distutils.core import setup
 
-conf = ConfigParser()
-conf.read(['setup.cfg'])
-metadata = dict(conf.items('metadata'))
+dir_path = os.path.dirname(os.path.realpath(__file__))
 
-PACKAGENAME = metadata.get('package_name', 'misfit')
-DESCRIPTION = metadata.get('description', 'Misaligned Kinematic Fitting')
-AUTHOR = metadata.get('author', 'Sedona Price')
-AUTHOR_EMAIL = metadata.get('author_email', 'sedona.price@gmail.com')
-LICENSE = metadata.get('license', 'BSD 3-Clause')
-URL = metadata.get('url', 'http://github.com/sedonaprice/misfit')
+init_string = open(os.path.join(dir_path, 'misfit', '__init__.py')).read()
+VERS = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VERS, init_string, re.M)
+__version__ = mo.group(1)
 
-# VERSION should be PEP440 compatible (http://www.python.org/dev/peps/pep-0440)
-VERSION = metadata.get('version', '0.0.dev')
+logging.basicConfig()
+log = logging.getLogger(__file__)
 
 
-# order of priority for long_description:
-#   (1) set in setup.cfg,
-#   (2) load LONG_DESCRIPTION.rst,
-#   (3) load README.rst,
-#   (4) package docstring
-readme_glob = 'README*'
-_cfg_long_description = metadata.get('long_description', '')
-if _cfg_long_description:
-    LONG_DESCRIPTION = _cfg_long_description
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
 
-elif os.path.exists('LONG_DESCRIPTION.rst'):
-    with open('LONG_DESCRIPTION.rst') as f:
-        LONG_DESCRIPTION = f.read()
+requirements = ['numpy', 'scipy', 'matplotlib', 'astropy',
+                'emcee', 'corner', 'dill',
+                'h5py', 'pandas', 'six']
 
-elif len(glob.glob(readme_glob)) > 0:
-    with open(glob.glob(readme_glob)[0]) as f:
-        LONG_DESCRIPTION = f.read()
+setup_requirements = ['numpy']
 
-else:
-    # Get the long description from the package's docstring
-    __import__(PACKAGENAME)
-    package = sys.modules[PACKAGENAME]
-    LONG_DESCRIPTION = package.__doc__
-
-
-# Indicates if this version is a release version
-RELEASE = 'dev' not in VERSION
-
-# if not RELEASE:
-#     VERSION += get_git_devstr(False)
-
-# # Populate the dict of setup command overrides; this should be done before
-# # invoking any other functionality from distutils since it can potentially
-# # modify distutils' behavior.
-# cmdclassd = register_commands(PACKAGENAME, VERSION, RELEASE)
-#
-# # Freeze build information in version.py
-# generate_version_py(PACKAGENAME, VERSION, RELEASE,
-#                     get_debug_option(PACKAGENAME))
-
-# Treat everything in scripts except README* as a script to be installed
-scripts = [fname for fname in glob.glob(os.path.join('scripts', '*'))
-           if not os.path.basename(fname).startswith('README')]
+setup_args = {'name': 'misfit',
+        'author': "Sedona Price",
+        'author_email': 'sedona.price@gmail.com',
+        'python_requires': '>=3.6',
+        'classifiers': [
+            'Development Status :: 3 - Alpha',
+            'Intended Audience :: Science/Research',
+            'License :: OSI Approved :: 3-clause BSD',
+            'Natural Language :: English',
+            "Topic :: Scientific/Engineering",
+            'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
+            'Programming Language :: Python :: 3.8',
+            'Programming Language :: Python :: 3.9',
+            'Programming Language :: Python :: 3.10',
+        ],
+        'description': "Misaligned kinematic fitting of galaxies from slit spectra",
+        'install_requires': requirements,
+        'setup_requires': setup_requirements,
+        'license': "3-clause BSD",
+        'long_description': readme,
+        'include_package_data': True,
+        'packages': ['misfit', 'misfit.fit', 'misfit.general',
+                     'misfit.mock', 'misfit.model', 'misfit.plot'],
+        'package_data': {'misfit': ['lib/*']},
+        'url': 'http://github.com/sedonaprice/misfit', 
+        'version': __version__ }
 
 
-# Get configuration information from all of the various subpackages.
-# See the docstring for setup_helpers.update_package_files for more
-# details.
-package_info = get_package_info()
+# Add CONDA include and lib paths if necessary
+conda_include_path = "."
+conda_lib_path = "."
+if 'CONDA_PREFIX' in os.environ:
+    conda_include_path = os.path.join(os.getenv('CONDA_PREFIX'), 'include')
+    conda_lib_path = os.path.join(os.getenv('CONDA_PREFIX'), 'lib')
+    log.debug('conda_include_path: {!r}'.format(conda_include_path))
+    log.debug('conda_lib_path: {!r}'.format(conda_lib_path))
 
-# Add the project-global data
-package_info['package_data'].setdefault(PACKAGENAME, [])
-package_info['package_data'][PACKAGENAME].append('data/*')
 
-# Define entry points for command-line scripts
-entry_points = {'console_scripts': []}
-
-if conf.has_section('entry_points'):
-    entry_point_list = conf.items('entry_points')
-    for entry_point in entry_point_list:
-        entry_points['console_scripts'].append('{0} = {1}'.format(
-            entry_point[0], entry_point[1]))
-
-# Include all .c files, recursively, including those generated by
-# Cython, since we can not do this in MANIFEST.in with a "dynamic"
-# directory name.
-c_files = []
-for root, dirs, files in os.walk(PACKAGENAME):
-    for filename in files:
-        if filename.endswith('.c'):
-            c_files.append(
-                os.path.join(
-                    os.path.relpath(root, PACKAGENAME), filename))
-package_info['package_data'][PACKAGENAME].extend(c_files)
-
-# Note that requires and provides should not be included in the call to
-# ``setup``, since these are now deprecated. See this link for more details:
-# https://groups.google.com/forum/#!topic/astropy-dev/urYO8ckB2uM
-
-setup(name=PACKAGENAME,
-      version=VERSION,
-      description=DESCRIPTION,
-      scripts=scripts,
-      install_requires=metadata.get('install_requires', 'astropy').strip().split(),
-      author=AUTHOR,
-      author_email=AUTHOR_EMAIL,
-      license=LICENSE,
-      url=URL,
-      long_description=LONG_DESCRIPTION,
-      # cmdclass=cmdclassd,
-      zip_safe=False,
-      use_2to3=False,
-      entry_points=entry_points,
-      **package_info
-)
+setup( **setup_args)
+log.info("Installation successful!")

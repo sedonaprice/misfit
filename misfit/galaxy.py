@@ -7,17 +7,17 @@
 from __future__ import print_function
 
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import copy
 import os
-import sys
+# import sys
 
 try:
-    import general.general_utils as utils
+    # import general.general_utils as utils
     from general import galaxy_utils
     from general import io
 except:
-    from .general import general_utils as utils
+    # from .general import general_utils as utils
     from .general import galaxy_utils
     from .general import io
 
@@ -53,7 +53,7 @@ class GalaxyBasic(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -69,15 +69,112 @@ class GalaxyBasic(object):
 class Galaxy(GalaxyBasic):
     """
     Galaxy class to contain information about spectra for MISFIT.
-    Usage:
-        gal = Galaxy(z=z, n=n, ....)
-        spec1D = ObsSpectrum1D(wave=wave_arr, flux=flux_arr,
-                                flux_err=flux_err_arr,
-                                spec_mask=mask_arr,
-                                units_wave='angstroms', units_flux='flam',
-                                extraction_method='optimal' or 'boxcar',
-                                band='H')
-        gal.set_spectrum_1D(spec1D)
+
+    
+    Parameters
+    ----------
+    field : string
+        Galaxy field
+
+    maskname : string
+        Galaxy mask name (for determining spectra filenames)
+
+    ID : int
+        Galaxy ID
+
+    RA : float
+        RA of the galaxy, in decimal degrees
+
+    DEC : float
+        Dec of the galaxy, in decimal degrees
+
+    z : float
+        Redshift
+
+    Av : float 
+        Attenuation towards the stellar continuum
+
+    lmass : float 
+        log10 of the galaxies' stellar mass
+
+    lage : float
+        log10 of the age of the parametric SFH
+
+    ltau : float 
+        log10 of the delay time of the parametric SFH
+    
+    lsfr : float
+        log10 SFR of the galaxy
+
+    Av_neb : float
+        Nebular attenuation towards the star-forming regions in the galaxy
+
+    sersicRA : float
+        RA of the model center from the parametric structural fitting
+    
+    sersicDEC : float
+        Dec of the model center from the parametric structural fitting
+    
+    n : float 
+        Sersic index of the parametric fitting to the imaging.
+    
+    re_arcsec : float
+        Effective radius (projected) of the light distribution from the Sersic fitting 
+        to the imaging, in arcsec.
+
+    sersicPA : float
+        Position angle of the galaxy major axis, from the parametric fitting, in degrees. 
+        Convention is CCW relative to the image y axis (up=0, left=90)
+    
+    q : float
+        Observed axis ratio for the light of the galaxy.    
+    
+    re_mass_arcsec : float
+        Effective radius (projected) of the mass distribution, in arcsec. 
+
+    q_mass : float
+        Observed axis ratio for the mass distribution. 
+
+    q0 : float
+        Intrinsic galaxy thickness (c/a). Default: 0.19
+
+    deltPA : float
+        Angle between the galaxy major axis and the slit, in degrees.
+
+    spec1D : `ObsSpectrum1D` instance
+        Galaxy 1D spectrum
+
+    spec2D : `ObsSpectrum2D` instance
+        Galaxy 2D spectrum
+
+    pstamp : `Pstamp` instance
+        Galaxy image postage stamp
+    
+    dither : bool, optional
+        Specify whether data was dithered (eg, neg images). Default: True
+
+    debug : bool, optional
+        Default: False
+
+    
+    Methods
+    -------
+    set_spectrum_1D :
+        Set the galaxy object's 1D spectrum to a `ObsSpectrum1D` instance
+
+    set_spectrum_2D :
+        Set the galaxy object's 2D spectrum to a `ObsSpectrum2D` instance
+
+    set_pstamp :
+        Set the galaxy object's image postage stamp to a `Pstamp` instance
+
+    calculate_slit_object_delta_PA :
+        Calculate misalignment of galaxy within slit: store in galaxy
+
+        
+    Notes
+    -----
+
     """
     def __init__(self, **kwargs):
         super(Galaxy, self).__init__(**kwargs)
@@ -154,6 +251,30 @@ class Galaxy(GalaxyBasic):
 class Spectrum(object):
     """
     Basic Spectrum class
+
+    Parameters
+    ----------
+    wave : array-like
+        Observed wavelength array
+
+    flux : array-like
+        Observed flux array
+
+    flux_err : array-like
+        Observed flux uncertainty array
+
+    spec_mask : array-like
+        Spectral mask array
+
+    units_wave : string
+        Wavelength array units. Default: 'angstroms
+
+    units_flux : string 
+        Flux array unit convention. Default: 'flam'
+
+    spec_type : string
+        Type of spectrum: either 'wave' / 'velocity'. Default: 'wave'
+
     """
     def __init__(self, **kwargs):
         self.wave = None
@@ -168,20 +289,148 @@ class Spectrum(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
         return copy.deepcopy(self)
 
+
+
+    """
+    Galaxy class to contain information about spectra for MISFIT.
+
+    
+    Parameters
+    ----------
+    field : string
+        Galaxy field
+
+    maskname : string
+        Galaxy mask name (for determining spectra filenames)
+
+    ID : int
+        Galaxy ID
+
+    RA : float
+        RA of the galaxy, in decimal degrees
+
+    DEC : float
+        Dec of the galaxy, in decimal degrees
+
+    z : float
+        Redshift
+
+    Av : float 
+        Attenuation towards the stellar continuum
+
+    lmass : float 
+        log10 of the galaxies' stellar mass
+
+    lage : float
+        log10 of the age of the parametric SFH
+
+    ltau : float 
+        log10 of the delay time of the parametric SFH
+    
+    lsfr : float
+        log10 SFR of the galaxy
+
+    Av_neb : float
+        Nebular attenuation towards the star-forming regions in the galaxy
+
+    sersicRA : float
+        RA of the model center from the parametric structural fitting
+    
+    sersicDEC : float
+        Dec of the model center from the parametric structural fitting
+    
+    n : float 
+        Sersic index of the parametric fitting to the imaging.
+    
+    re_arcsec : float
+        Effective radius (projected) of the light distribution from the Sersic fitting 
+        to the imaging, in arcsec.
+
+    sersicPA : float
+        Position angle of the galaxy major axis, from the parametric fitting, in degrees. 
+        Convention is CCW relative to the image y axis (up=0, left=90)
+    
+    q : float
+        Observed axis ratio for the light of the galaxy.    
+    
+    re_mass_arcsec : float
+        Effective radius (projected) of the mass distribution, in arcsec. 
+
+    q_mass : float
+        Observed axis ratio for the mass distribution. 
+
+    q0 : float
+        Intrinsic galaxy thickness (c/a). Default: 0.19
+
+    deltPA : float
+        Angle between the galaxy major axis and the slit, in degrees.
+
+    spec1D : `ObsSpectrum1D` instance
+        Galaxy 1D spectrum
+
+    spec2D : `ObsSpectrum2D` instance
+        Galaxy 2D spectrum
+
+    pstamp : `Pstamp` instance
+        Galaxy image postage stamp
+    
+    dither : bool, optional
+        Specify whether data was dithered (eg, neg images). Default: True
+
+    debug : bool, optional
+        Default: False
+
+    
+    Methods
+    -------
+    set_spectrum_1D :
+        Set the galaxy object's 1D spectrum to a `ObsSpectrum1D` instance
+
+    set_spectrum_2D :
+        Set the galaxy object's 2D spectrum to a `ObsSpectrum2D` instance
+
+    set_pstamp :
+        Set the galaxy object's image postage stamp to a `Pstamp` instance
+
+    calculate_slit_object_delta_PA :
+        Calculate misalignment of galaxy within slit: store in galaxy
+
+        
+    Notes
+    -----
+
+    """
+
+
 class ObsSpectrum(Spectrum):
     """
     Class to hold observed spectra.
-            self.wave holds the observed wavelength array.
+    Note self.wave holds the observed wavelength array.
 
-    Input:
-        band:            spectrum band name
-        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)
+
+    Parameters
+    ----------
+    band : string
+        Spectrum band name
+
+    slit_PA : float
+        Slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)
+
+
+    Methods
+    -------
+    load_basic_defaults : 
+        Taking galaxy input, calculate the basic defaults
+
+    calculate_restwave : 
+        Taking galaxy input, calculate the restframe wavelength array of the galaxy
+
     """
     def __init__(self, **kwargs):
         super(ObsSpectrum, self).__init__(**kwargs)
@@ -208,19 +457,40 @@ class ObsSpectrum(Spectrum):
 
 class ObsSpectrum1D(ObsSpectrum):
     """
-    Class to hold 1D spectra.
+    Class to hold the observed 1D spectra.
 
-    Takes wave, flux, flux_err, spec_mask, extraction_spatial_profile (1D arrays) as input.
+    Parameters
+    ----------
+    extraction_method : string
+        Default: 'optimal'
 
-    Additionall attributes:
-        band:            spectrum band name
-        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)
+    extraction_spatial_profile : array-like
+        Array characterizing the spatial extraction profile
 
-    Optional keywords:
-        units_wave (default: 'angstroms')
-        units_flux (default: 'flam')
-        units_spatial (default: 'arcsec')
+    units_spatial : string 
+        Units of the spatial array profile. Default: 'arcsec'
+
+    trim_obswave_range : array-like
+        Array of lower, upper limit values for trimming the observed wavelength 
+
+    trim_restwave_range : array-like
+        Array of lower, upper limit values for trimming the restframe wavelength 
+
+    num_mask_edge : int
+        Number of points near the spectral edges to mask
+
+    Methods
+    -------
+    trim_spectrum_wavelength : 
+        Method to trim the spectrum in the spectral direction, using either 
+        self.trim_obswave_range or self.trim_restwave_range
+
+    mask_edges : 
+        Calculate a spectral mask to mask the edges of the spectrum, based on self.num_mask_edge
+    
     """
+    
+
     def __init__(self, **kwargs):
 
         super(ObsSpectrum1D, self).__init__(**kwargs)
@@ -253,37 +523,64 @@ class ObsSpectrum1D(ObsSpectrum):
                 param_restwave_filename=None, linename=None):
         """
         Method to trim the 1D spectrum to a given wavelength range.
-        Either input trim_restwave_range (and have galaxy.z set) to do in restframe,
-                or   trim_obsframe_range  to trim in observed frame
-                or   param_filename and linename  to read the set from a parameters file.
+
+        Notes
+        -----
+
+        Either input: 
+        trim_restwave_range (and have galaxy.z set) to do in restframe, or
+        trim_obsframe_range  to trim in observed frame, or 
+        param_filename and linename  to read the set from a parameters file.
 
         Returns a trimmed copy of self
+
         """
         return galaxy_utils.trim_spectrum_1D(self, galaxy, trim_restwave_range=trim_restwave_range,
                     trim_obswave_range=trim_obswave_range,
                     param_restwave_filename=param_restwave_filename, linename=linename)
 
-    #
+    
     def mask_edges(self):
         self.spec_mask = galaxy_utils.mask_edges_1D(spec=self.flux, spec_err=self.flux_err,
                     spec_mask=self.spec_mask,num_edge=self.num_mask_edge)
 
 
 
-#
+
 class ObsSpectrum2DBasic(ObsSpectrum):
     """
     Class to hold basic 2D spectra.
 
-    Takes flux, flux_err, spec_mask, spec_weight (2D arrays),
-          wave (1D arrays) as input.
+    Parameters
+    ----------
+    flux : 2D array-like
+        Array holding 2D spectrum flux. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-    Assumed shape: rows: spatial, columns: wavelength (eg, [ind_spatial, ind_wave])
+    flux_err : 2D array-like
+        Array holding 2D spectrum flux uncertainty. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-    Optional keywords:
-        units_wave      (default: 'angstroms')
-        units_flux      (default: 'flam')
+    spec_mask : 2D array-like
+        Array holding 2D spectrum mask. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
+
+    spec_weight : 2D array-like
+        Array holding 2D spectrum weight. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
+
+    wave : 1D array-like
+        Array holding 1D spectrum wavelength array.
+
+    units_wave : string, optional
+        Units of the wavelength array. Default: 'angstroms'
+
+    units_flux : string, optional
+        Flux array type. Default: 'flam' (eg, erg/s/cm2/Angstrom)
+
+    Methods
+    -------
+    load_basic_defaults : 
+        Load basic default values
+
     """
+        
     def __init__(self, **kwargs):
 
         super(ObsSpectrum2DBasic, self).__init__(**kwargs)
@@ -308,27 +605,57 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
     """
     Class to hold 2D spectra.
 
-    Takes flux, flux_err, spec_mask, spec_weight (2D arrays),
-          wave (1D arrays) as input.
+    Parameters
+    ----------
+    flux : 2D array-like
+        Array holding 2D spectrum flux. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-    Additional attributes:
-        band:            spectrum band name
-        slit_PA:         slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg)
+    flux_err : 2D array-like
+        Array holding 2D spectrum flux uncertainty. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-    Assumed shape: rows: spatial, columns: wavelength (eg, [ind_spatial, ind_wave])
+    spec_mask : 2D array-like
+        Array holding 2D spectrum mask. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-    Lines to be modeled+fit: at minimum, input:
-        linegroup_name              (eg, 'OIII' to get OIII doublet)
+    spec_weight : 2D array-like
+        Array holding 2D spectrum weight. Shape: (spatial, spectral). Eg, [ind_spatial, ind_wave]
 
-        or else explicitly set:
-            linenames_arr
-            restwave_arr
-            flux_ratio_arr
+    wave : 1D array-like
+        Array holding 1D spectrum wavelength array.
 
-    Optional keywords:
-        units_wave      (default: 'angstroms')
-        units_flux      (default: 'flam')
+    band : string 
+        Spectrum band name. 
+
+    slit_PA : float
+        slit PA (parallel to slit) CCW relative to North (North = 0deg, East=90deg). Units: degrees
+
+    linegroup_name : string, optional
+        Name describing the line group to be modeled & fit. (eg, 'OIII' to model the OIII doublet)
+
+    linenames_arr : array-like, optional
+        Array holding the names of the lines to be fit.
+
+    restwave_arr : array-like, optional
+        Array holding the restframe wavelengths of the lines to be fit.
+
+    flux_ratio_arr : array-like, optional
+        Array holding the fixed flux ratios of the lines to be fit.
+
+    units_wave : string, optional
+        Units of the wavelength array. Default: 'angstroms'
+
+    units_flux : string, optional
+        Flux array type. Default: 'flam' (eg, erg/s/cm2/Angstrom)
+
+    Methods
+    -------
+
+    Notes
+    -----
+    To specify the lines to be modeled & fit, either input `linegroup_name`, or 
+    explicitly set `linenames_arr`, `restwave_arr`, `flux_ratio_arr`.
+
     """
+        
     def __init__(self, **kwargs):
 
         # ObsSpectrum.__init__(self,None,None,None, None)
@@ -348,6 +675,9 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
 
         # Also needs weight array:
         self.spec_weight = None
+
+        # Empty 2D mask array:
+        self.spec_mask = None
 
         self.median_flux_error = None              # Median error level -- to determine skylines
         self.band_cutoff = None                    # Multiplicative factor by median err for skyline cut
@@ -397,21 +727,17 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
 
         self.setAttr(**kwargs)
 
+    def _ensure_mask_weight(self):
+        if self.spec_weight is None:
+            self.spec_weight = np.ones(self.flux.shape)
+
+        if self.spec_mask is None:
+            self.spec_mask = np.ones(self.flux.shape)
 
     def fit_prep_calcs(self, galaxy, instrument, **kwargs):
         """
         Prepare a copy ObsSpectrum2D class which holds the input spec2D,
         then subtract continuum, mask, and trim spec2D for fitting.
-
-        At minimum, input linegroup_name (eg, 'OIII' to get OIII doublet)
-
-        Either input linenames_arr (to read all line ranges, etc) from default MISFIT param file,
-                or input explicit parameter filenames + linenames_arr
-                or directly input
-                trim_restwave_range (and have galaxy.z set) to do in restframe,
-                    or   trim_obsframe_range  to trim in observed frame
-                    or   param_filename and linename  to read the set from a parameters file.
-
         """
         # Update keywords, etc:
         self.setAttr(**kwargs)
@@ -420,6 +746,8 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
             self.initialize_lineset()
             self.initialize_skylevels()
             self.initialize_derived_variables(galaxy)
+
+            self._ensure_mask_weight()
 
             ###########
             # if not self.generate_model:
@@ -477,12 +805,19 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
 
 
     def initialize_derived_variables(self, galaxy):
+        """
+        Set up derived variables (obs-frame wavelengths)
+        """
         self.dlam = np.average(self.wave[1:]-self.wave[:-1])
         # Should have set instrument.instrument_resolution: vel disp [km/s]
         if (self.lam0 is None) & (self.spec_type == 'wave'):
             self.lam0 = self.restwave_arr[0]*(1.+galaxy.z)
 
     def initialize_lineset(self):
+        """
+        Initialize the set of lines for fitting. Use either `self.linegroup_name`, 
+        or use information from `self.linenames_arr`, `self.restwave_arr`, `self.flux_ratio_arr`.
+        """
         # Read in the set of lines from the line group, if not set
         if (self.linenames_arr is None):
             if self.linenames_param_filename is None:
@@ -513,6 +848,9 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
 
 
     def initialize_skylevels(self):
+        """
+        Initialize the skyline threshold levels for the specific band. (MOSFIRE-specificy currently.)
+        """
         # Read in band_cutoff, if not set
         if (self.band_cutoff is None):
             if self.band_cutoff_param_filename is None:
@@ -551,9 +889,10 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
                 param_restwave_filename=None, linename=None, inplace=False):
         """
         Method to trim the 2D spectrum to a given wavelength range.
-        Either input trim_restwave_range (and have galaxy.z set) to do in restframe,
-                or   trim_obsframe_range  to trim in observed frame
-                or   param_filename and linename  to read the set from a parameters file.
+        Either input: 
+        trim_restwave_range (and have galaxy.z set) to do in restframe, or
+        trim_obsframe_range  to trim in observed frame, or 
+        param_filename and linename  to read the set from a parameters file.
 
         Returns a trimmed copy of self
         """
@@ -566,7 +905,7 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
     def trim_spectrum_spatial(self, galaxy, instrument):
         """
         Method to trim the 2D spectrum to a given spatial range -- in preparation for fitting.
-            Trim vertically: identify yposition and bounding pixel indices:
+        Trim vertically: identify yposition and bounding pixel indices:
         """
         self, galaxy = galaxy_utils.trim_spectrum_2D_spatial(self, galaxy, instrument)
 
@@ -592,10 +931,16 @@ class ObsSpectrum2D(ObsSpectrum2DBasic):
 
 class Pstamp(object):
     """
-    Basic Pstamp class
+    Class to hold basic postage stamp image. 
 
-    Takes:
-        img_PA:         PA of image (y axis) CCW relative to North (North = 0deg, East=90deg)
+    Parameters
+    ----------
+    img_PA : float
+        PA of image (y axis) CCW relative to North (North = 0deg, East=90deg). Unit: degrees
+
+    Methods
+    -------
+
     """
     def __init__(self, **kwargs):
         self.pstamp = None
@@ -608,7 +953,7 @@ class Pstamp(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         #self.__dict__.update(kwargs)
 
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))

@@ -10,12 +10,15 @@ from __future__ import print_function
 import numpy as np
 import os
 import matplotlib
-
+try:
+    os.environ["DISPLAY"]
+except:
+    matplotlib.use("agg")
 #matplotlib.rcParams['text.usetex'] = False
 
-import six
+# import six
 
-from matplotlib.colors import colorConverter
+# from matplotlib.colors import colorConverter
 from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -32,19 +35,25 @@ from misfit.general import general_utils as utils
 
 
 
-def plot_bestfit_model(fitEmis2D, fileout=None, noTitles=False, verbose=False, usetex=True):
+def plot_bestfit_model(fitEmis2D, fileout=None, noTitles=False, 
+                       verbose=False, usetex=True):
     """
-    Input:
-        FitEmis2D object: contains
-            galaxy
-            instrument (spectrum)
-            instrument_img
-            model           fitting model + results
+    Plot the bestfit model and data. 
 
-    Optional:
-        ax:             axes instance. If set, must reside in pre-defined figure,
-                          and already be created (using proper gridspec positioning, etc)
-        saveToFile:     (True/False) Save current axis instance to file. 'fileout' must be set.
+    Parameters
+    ----------
+    fitEmis2D : `misfit.fit.FitEmissionLines2D` instance
+        2D emission line fitter instance, holding the following attributes:
+        galaxy, instrument (`misfit.Spectrograph` instance), 
+        instrument_img (`misfit.Imager` instance), and 
+        model (holding fitting model & results)
+
+    ax : axes instance, optional
+        Plotting axis within a pre-defined figures. 
+
+    fileout : string, optional
+        Output filename. If set, will save to file. 
+    
     """
     sh_spec_trim = np.shape(fitEmis2D.galaxy.spec2D.flux)
     sp_rat = sh_spec_trim[1]/np.float(sh_spec_trim[0])  # width/height
@@ -62,7 +71,7 @@ def plot_bestfit_model(fitEmis2D, fileout=None, noTitles=False, verbose=False, u
         gs1 = gridspec.GridSpec(1, n_cols, width_ratios=[1, 1, sp_rat], wspace=0.1)
 
     axes = []
-    for i in six.moves.xrange(n_cols):
+    for i in range(n_cols):
         axes.append(plt.subplot(gs1[0,i]))
 
     #

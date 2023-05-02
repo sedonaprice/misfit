@@ -43,9 +43,12 @@ With py2.7.17XX, it is::
 
 Dependencies
 ------------
+* python (version >= 3.6)
 * numpy/scipy/matplotlib
-* astropy (version >= ????)
+* numba
+* astropy
 * emcee
+* lmfit
 * acor
 * corner
 * dill

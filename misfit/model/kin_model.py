@@ -5,7 +5,7 @@ from __future__ import print_function
 
 import numpy as np
 import copy
-import six
+# import six
 
 from misfit.model.kin_classes import KinProfileFiducial, IntensityProfileFiducial, \
                                 Theta2DSettingsFiducial
@@ -45,7 +45,7 @@ class KinModel2DOptions(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -57,8 +57,8 @@ class KinModel2DOptions(object):
 class KinModel2D(object):
     """
     Class to handle kinematic fitting models.
-        Handles variable + fixed parameters, talks to the Aper2DModel class,
-        creates scaled model to data.
+    Handles variable + fixed parameters, talks to the Aper2DModel class,
+    creates scaled model to data.
     """
     def __init__(self, galaxy, thetaSettings=Theta2DSettingsFiducial(),
                     kinProfile=KinProfileFiducial(),
@@ -102,7 +102,7 @@ class KinModel2D(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
 
@@ -128,7 +128,7 @@ class KinModel2D(object):
         Unpack current fitting parameters into the whole parameter array
         """
         j = 0
-        for i in six.moves.xrange(len(self.theta)):
+        for i in range(len(self.theta)):
             if self.theta_vary[i]:
                 self.theta[i] = theta_fitting[j]
                 j += 1
@@ -307,7 +307,7 @@ class KinModel2D(object):
         nFree = self.n_free_param
         nPix = len(wh[0])
 
-        return chisq/np.float(nPix-nFree)
+        return chisq/float(nPix-nFree)
 
     def model_redchisq_weight_ref(self):
         # Eg, take an array of all ones and weight it.
@@ -318,7 +318,7 @@ class KinModel2D(object):
         nFree = self.n_free_param
         nPix = len(wh[0])
 
-        return chisq_ref_allones/np.float(nPix-nFree)
+        return chisq_ref_allones/float(nPix-nFree)
 
     def model_redchisq_no_weight(self):
         chisq = _model_chisq_no_weight(self)
@@ -328,7 +328,7 @@ class KinModel2D(object):
         nFree = self.n_free_param
         nPix = len(wh[0])
 
-        return chisq/np.float(nPix-nFree)
+        return chisq/float(nPix-nFree)
 
 
 #
@@ -353,19 +353,28 @@ def _model_llike(kinModel, model=None):
 #@jit
 def _model_chisq(kinModel, model=None):
     """
-    Function to return the reduced chisq of the residual between the
+    Function to return the chisq of the residual between the
     2D spectrum amd model
 
-    Input:
-        emis_t:         2D trimmed (wave and spatial) emission line image
-        emis_err_t:     error of the 2D trimmed emission line image
-        emis_mod:       2D kinematic model image
-        #m0:                spatial pixel position of pos image
-        #m1, m2:            spatial pixel positions of top, bottom neg images
-        n:              number of model free parameters.
+    Parameters
+    ----------
 
-    Output:
-        chisq_red:      Reduced chisq stat for goodness of fit of the model.
+    kinModel : `KinModel2D` instance
+        Kinematic model instance, holding a `spec2D` instance within 
+        `kinModel.aperModel.galaxy.spec2D`, which contains the 
+        trimmed 2D spectrum and uncertainty, mask, and weighting. 
+        Also contains a model 2D spectrum within `kinModel.model`, 
+        if `model` is not passed.
+
+
+    model : 2D array-like, optional
+        Model 2D emission line. 
+
+    Returns
+    -------
+    chisq : float
+        Weighted chisq statistic for goodness of fit of the model.
+
     """
     # Data:  fitEmis2D.galaxy.spec2D.flux, flux_err, spec_mask, fitting_weight_matrix
     # Model: fitEmis2D.kinModel.model
@@ -388,19 +397,28 @@ def _model_chisq(kinModel, model=None):
 #@jit
 def _model_chisq_no_weight(kinModel, model=None):
     """
-    Function to return the reduced chisq of the residual between the
-    2D spectrum amd model
+    Function to return the chisq of the residual between the
+    2D spectrum amd model, without any weighting
 
-    Input:
-        emis_t:         2D trimmed (wave and spatial) emission line image
-        emis_err_t:     error of the 2D trimmed emission line image
-        emis_mod:       2D kinematic model image
-        #m0:                spatial pixel position of pos image
-        #m1, m2:            spatial pixel positions of top, bottom neg images
-        n:              number of model free parameters.
+    Parameters
+    ----------
 
-    Output:
-        chisq_red:      Reduced chisq stat for goodness of fit of the model.
+    kinModel : `KinModel2D` instance
+        Kinematic model instance, holding a `spec2D` instance within 
+        `kinModel.aperModel.galaxy.spec2D`, which contains the 
+        trimmed 2D spectrum and uncertainty, and mask.  
+        Also contains a model 2D spectrum within `kinModel.model`, 
+        if `model` is not passed.
+
+
+    model : 2D array-like, optional
+        Model 2D emission line. 
+
+    Returns
+    -------
+    chisq : float
+        Unweighted chisq statistic for goodness of fit of the model.
+
     """
     # Data:  fitEmis2D.galaxy.spec2D.flux, flux_err, spec_mask, fitting_weight_matrix
     # Model: fitEmis2D.kinModel.model

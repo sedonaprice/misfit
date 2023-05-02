@@ -11,3 +11,7 @@
 
 # Private data
 tests/PYTEST_OUTPUT/
+
+# Sphinx
+docs/api
+docs/_build

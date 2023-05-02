@@ -18,7 +18,7 @@ from scipy.optimize import fmin
 
 from astropy.io import ascii
 
-import six
+# import six
 
 from contextlib import contextmanager
 
@@ -117,7 +117,7 @@ def vert_triple_gaus_residual(params, xx, data, err):
 def wh_continuous(wh_arr):
     wh_arrs = []
     arr = []
-    for i in six.moves.xrange(len(wh_arr)):
+    for i in range(len(wh_arr)):
         if i < len(wh_arr)-1:
             if wh_arr[i+1] - wh_arr[i] == 1:
                 arr.append(wh_arr[i])
@@ -188,7 +188,7 @@ def file_or_stdout(file_name):
 def range_arrs(fitEmis2D):
     param_range = []
     param_lower = []
-    for j in six.moves.xrange(len(fitEmis2D.kinModel.theta_names)):
+    for j in range(len(fitEmis2D.kinModel.theta_names)):
         if fitEmis2D.kinModel.theta_vary[j]:
             param_range.append(max(fitEmis2D.thetaPrior.theta_bounds[j])-\
                         min(fitEmis2D.thetaPrior.theta_bounds[j]))
@@ -208,7 +208,7 @@ def find_peak_gaussian_KDE(flatchain, initval):
 
     if nparams > 1:
         peakvals = np.zeros(nparams)
-        for i in six.moves.xrange(nparams):
+        for i in range(nparams):
             kern = gaussian_kde(flatchain[:,i])
             peakvals[i] = fmin(lambda x: -kern(x), initval[i], disp=False)
         return peakvals
@@ -251,7 +251,7 @@ def get_bestfit_values_linked(fitEmis2D, err_theta, mcmc_lims_zip,
     bestfit_theta_linked = find_peak_gaussian_KDE_multiD(flatchain, theta_linked_posteriors,
             fitEmis2D.mcmc_results.bestfit_theta[theta_linked_posteriors])
 
-    for k in six.moves.xrange(len(theta_linked_posteriors)):
+    for k in range(len(theta_linked_posteriors)):
         bestfit_theta[theta_linked_posteriors[k]] = bestfit_theta_linked[k]
         err_theta[theta_linked_posteriors[k]] = np.array([bestfit_theta_linked[k]-mcmc_lims_zip[theta_linked_posteriors[k]][0],
                                 mcmc_lims_zip[theta_linked_posteriors[k]][1] - bestfit_theta_linked[k]])

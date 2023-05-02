@@ -44,7 +44,7 @@ def generate_mock_basis(z=None,
         do_inst_res_conv_effective=False,
         kinProfile = KinProfileFiducial(),
         intensityProfile = IntensityProfileFiducial(Galaxy(n=1.,q0=0.19,re_arcsec=0.)),
-        debug=False):
+        debug=False, **kwargs):
 
     # Enforce min slit-length
     if slit_length < nymin*pixscale:
@@ -67,7 +67,7 @@ def generate_mock_basis(z=None,
                     no_continuum_subtraction=True,
                     spec_type=spec_type)
 
-    spec2D.shape = [ np.int(np.ceil(instrument.slit_length/instrument.pixscale)), nwave]
+    spec2D.shape = [ int(np.ceil(instrument.slit_length/instrument.pixscale)), nwave]
     if spec_type == 'wave':
         spec2D.initialize_lineset()
     spec2D.m0 = np.ceil(instrument.slit_length/instrument.pixscale)/2. - 0.5

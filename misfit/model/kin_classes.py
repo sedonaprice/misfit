@@ -4,7 +4,7 @@
 from __future__ import print_function
 
 import numpy as np
-import six
+# import six
 
 try:
     import kin_functions as kfuncs
@@ -23,7 +23,7 @@ class VelProfile(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def vel(self, r, z):
@@ -41,7 +41,7 @@ class DispProfile(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def sigma(self, r, z):
@@ -50,10 +50,14 @@ class DispProfile(object):
 
 class VelArctanProfile(VelProfile):
     """
-    Arctan velocity profile. Parameters are:
-        theta = [V_a, r_t]
-                V_a:    asymptotic velocity [km/s]
-                r_t:    turnover radius     [arcsec]
+    Arctan velocity profile.
+
+    Parameters
+    ----------
+    theta : array-like
+        Parameter array, [V_a, r_t], where 
+        V_a is the asymptotic velocity [km/s], and 
+        r_t is the turnover radius [arcsec]
     """
     def __init__(self,**kwargs):
         super(VelArctanProfile, self).__init__(**kwargs)
@@ -71,9 +75,13 @@ class VelArctanProfile(VelProfile):
 
 class DispConstProfile(DispProfile):
     """
-    Constant velocity dispersion profile. Parameters are:
-        theta = [sigma0]
-                sigma0:    velocity dispersion [km/s]
+    Constant velocity dispersion profile. 
+
+    Parameters
+    ----------
+    theta : array-like
+        Parameter array, [sigma0], where 
+        sigma0 is the velocity dispersion [km/s]
     """
     def __init__(self,**kwargs):
         super(DispConstProfile, self).__init__(**kwargs)
@@ -84,8 +92,6 @@ class DispConstProfile(DispProfile):
 
     def sigma(self, r, z):
         return 0.*r + self.theta[0]
-
-
 
 
 class KinProfile(object):
@@ -105,7 +111,7 @@ class KinProfile(object):
         self.setup_profiles()
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def setup_profiles(self):
@@ -119,7 +125,7 @@ class KinProfile(object):
     def update_theta(self, theta):
         """
         Update theta for the velocity profile:
-            including splitting up vel, dispersion parameters
+        including splitting up vel, dispersion parameters
         """
         self.theta = theta
 
@@ -160,7 +166,7 @@ class IntensityProfile(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def update_values(self, galaxy):
@@ -206,7 +212,7 @@ class IntProfileCompBase(object):
         self.get_gal_params(galaxy)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
     #
     def get_gal_params(self, galaxy):
@@ -233,7 +239,7 @@ class IntProfileSersic(IntProfileCompBase):
     def int(self, r):
         # Sersic surface intensity profile
         b_n = 2.*self.n - 0.324      # Ciotti+Bertin99
-        return self.Ie*np.exp( -b_n * (np.power( (r/self.re_arcsec), 1./np.float(self.n) ) -1. ) )
+        return self.Ie*np.exp( -b_n * (np.power( (r/self.re_arcsec), 1./float(self.n) ) -1. ) )
 
 class IntProfileExpZ(IntProfileCompBase):
     def __init__(self, galaxy, **kwargs):
@@ -281,7 +287,7 @@ class ThetaPriorFlat(object):
         i_free = 0
 
         statements = []
-        for i in six.moves.xrange(len(self.theta)):
+        for i in range(len(self.theta)):
             if self.theta_vary[i]:
                 statements.append(kfuncs._between(self.theta_bounds[i], theta_fitting[i_free]))
                 i_free += 1
@@ -297,7 +303,7 @@ class ThetaPriorFlat(object):
 class Theta2DSettings(object):
     """
     Class to initialize the settings needed for the fitting parameters,
-        which is passed to the fitEmis2D object.
+    which is passed to the fitEmis2D object.
     """
     def __init__(self, theta=None, theta_vary=None,
                     theta_names=None, theta_names_nice=None,
@@ -314,7 +320,7 @@ class Theta2DSettings(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """ Set/update arbitrary attribute list with kwargs """
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
 
@@ -323,11 +329,11 @@ class Theta2DSettings(object):
 class Theta2DSettingsFiducial(Theta2DSettings):
     """
     Class to initialize the settings needed for the fitting parameters,
-        which is passed to the fitEmis2D object.
-        Contains defaults for fiducial (arctan + const velocity dispersion) kinModel
+    which is passed to the fitEmis2D object.
+    Contains defaults for fiducial (arctan + const velocity dispersion) kinModel
 
     Designed to have the Velocity profile parameters first, then Dispersion profile params, then
-        composite / other parameters (eg, spatial + wavelength shift)
+    composite / other parameters (eg, spatial + wavelength shift)
     """
     def __init__(self, usetex=True, **kwargs):
         super(Theta2DSettingsFiducial, self).__init__(**kwargs)

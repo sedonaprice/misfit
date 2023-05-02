@@ -7,21 +7,21 @@
 from __future__ import print_function
 
 import numpy as np
-import pandas as pd
+# import pandas as pd
 import copy
 import os
-import sys
+# import sys
 
 import pickle
 
-from scipy.stats import norm
+# from scipy.stats import norm
 
 try:
-    import misfit.general.general_utils as utils
+    # import misfit.general.general_utils as utils
     import misfit.general.io as io
 
 except:
-    from ..general import general_utils as utils
+    # from ..general import general_utils as utils
     from ..general import io as io
 
 import misfit.plot as misfit_plot
@@ -37,7 +37,7 @@ except:
 
 
 
-from misfit.model import AperModel2D
+# from misfit.model import AperModel2D
 from misfit.model import KinModel2D, KinModel2DOptions
 from misfit.model.kin_classes import KinProfileFiducial, IntensityProfileFiducial, ThetaPriorFlat
 from misfit import Galaxy
@@ -50,59 +50,94 @@ c_AA = c_cgs * 1.e8  # go from cm/s -> AA/s
 
 class FitEmissionLines2D(object):
     """
-    Fit the kinematics of a 2D spectrum, using a set of lines.
+    Class to fit the kinematics of a 2D spectrum, using a set of line(s).
 
-    Define a spectrum made of multiple linesets set of emission lines and profiles for 2D spectra of a single lineset
-        (eg, Ha, OIII doublet, ...)
+    Parameters
+    ----------
+    galaxy : `misfit.Galaxy` instance
+        Galaxy instance, holding a `misfit.spec2D` instance 
+        containing the galaxy 2D spectrum, uncertainty, masks, etc.
+        `galaxy` must have the following structural parameters specified: 
+        n, q, R_E (arcsec), delt_PA (calculated as part of fit_prep_calc 
+        from the inst+gal+spec2D angles). 
+        Can also hold a `misfit.Pstamp` instance for plotting.
+        Note `spec2D.instrument_resolution` should be in km/s
 
-    Input:
-        galaxy              galaxy class
-            Needs to have structural parameters:
-                n, q, R_E (arcsec), delt_PA (calculated as part of fit_prep_calc
-                                              from inst+gal+spec2D angles)
-            spec1D          1D spectrum for the galaxy
-            spec2D          2D spectrum for the galaxy
-            pstamp          pstamp image of the galaxy
-            Note: spec2D.instrument_resolution should be in km/s
+    instrument : `misfit.Spectrograph` instance
+        Spectrograph instance. Requires the following attributes: 
+        instrument_resolution [km/s], PSF_FWHM [arcsec], pixscale [arcsec/pixel]. 
 
-        instrument:
-            spectrograph. Needs
-                instrument_resolution [km/s]
-                PSF_FWHM [arcsec]
-                pixscale [arcsec/pixel]
-
-        instrument_img:
-            imaging instrument. Needs
-                PA of imaging (for getting misalignment angles)
+        
+    instrument_img: `misfit.Imager` instance
+        Imager instance. Requires the imaging PA to be set 
+        (for calculating misalignement angles.)
 
 
-        linegroup_name         name of line group to fit
-                                (eg, 'Halpha' is just Ha, 'OIII' is the doublet)
-    Optional:
-        linenames_arr =         set of linenames for each group of lines
-        restwave_arr =          set of restwaves for each group of lines
-        flux_ratio_arr =        relative fluxes of lines to be used in model
-        trim_restwave_range =   restframe wavelength to trim the spectra for fitting
-        trim_wave_paramfile =   file with wavelength to trim the spectrum for fitting
-        del_obs_lam =           +- obs angstroms for optimizing z ; default = 20.
+    flux_arr :  array-like
+        Initial guess of the flux (erg/s/cm2) 
+        of the brightest line for each in the set.
 
-        kinProfile =            KinProfile class, containing info about generating .vel(r), .sigma(r)
-                                Fiducial: Arctan velocity + constant dispersion.
-                                          theta = [Va, rt, sigma0, m0shift, lam0]
+    z : float
+        Initial guess of the redshift
+
+    vel_disp : float       
+        Initial guess of the line dispersion [km/s]
+
+        
+    kinProfile : `misfit.KinProfile` instance, optional
+        Kinematic profile class with methods for the velocity and dispersion profiles 
+        (`kinProfile.vel(r)`, `kinProfile.sigma(r)`). 
+        Default: Arctan velocity + constant dispersion, 
+        where the fit theta is [Va, rt, sigma0, m0shift, lam0]
+
+    intensityProfile : `misfit:IntensityProfile` instance, optional
+        Intensity profile class, containing info about light dist for galaxy.
+        Default: Sersic profile radially + exponential in the vertical direction
+
+    linegroup_name : array-like, optional
+        Array of line names to fit, if `linenames_arr` is not specified. 
+        eg: ['Halpha', 'NII'], ['OIII'], ['Hbeta']
+
+    linenames_arr : array-like, optional
+        Array of line group names.
+
+    restwave_arr : array-like, optional
+        Array of restframe wavelengths corresponding to the lines specified by 
+        `linenames_arr`.
+
+    flux_ratio_arr : array-like, optional
+        Relative flux strengths of the lines in the groups defined in linenames_arr. 
+
+    trim_restwave_range : array-like, optional
+        Restframe wavelength range to which to trim the spectra for fitting
+
+    trim_wave_paramfile : string, optional
+        Filename with wavelength to trim the spectrum for fitting
+        
+    del_obs_lam : float, optional
+        +- Observed angstroms for optimizing the redshift solution. Default: 20.
 
 
-        intensityProfile =      IntensityProfile class, contains info about light dist for galaxy.
-                                Fiducial: Sersic + exponential taper vertically
+    Methods
+    -------
+    fit : 
+        Run the MCMC sampling (with emcee), and analyze the posterior to 
+        determine the "best-fit" (maximum a posteriori) values. 
 
-    Will create model class
-         has subclass bestfit containing all the best-fit values + errors
+    Notes
+    -----
+    To specify the lines to be modeled & fit, either input `linegroup_name`, or 
+    explicitly set `linenames_arr`, `restwave_arr`, `flux_ratio_arr`.
 
-    ***************
-    Initializing object ensures the fit preparation calculations are done on galaxy.spec2D
-        Can use trimmed spectrum + prepared calculations to determine **sane** theta bounds.
-    ***************
+    Will create a `model` attribute, and has an attribute `bestfit` 
+    containing all the best-fit values + errors
+
+    Initializing the instance ensures the fit preparation calculations 
+    are done on galaxy.spec2D. Then the trimmed spectrum + prepared calculations 
+    to determine **sane** theta bounds.
 
     """
+
     # def __init__(self, galaxy, instrument, **kwargs):
     def __init__(self, galaxy=None, instrument=None, instrument_img=None,
                     linegroup_name = None, linenames_arr = None,
@@ -172,7 +207,7 @@ class FitEmissionLines2D(object):
         self.setup()
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -181,7 +216,7 @@ class FitEmissionLines2D(object):
     def setup(self):
         if (self.linenames_arr is None):
             if self.galaxy.spec2D.linenames_arr is None:
-                linenames_arr = []
+                # linenames_arr = []
                 # set this from lib if not set:
                 d = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib')
                 names_file = os.path.join(d, 'line_names_cat.dat')
@@ -223,9 +258,9 @@ class FitEmissionLines2D(object):
 
     def fit(self, **kwargs):
         """
-        Run the MCMC fitting. Requires input of class Theta2DSettings instance,
-            which handles the fitting parameters required for the kinProfile functions,
-            and with and additional, last two paramters as m0_shift and z.
+        Run the MCMC fitting. Requires input of a `Theta2DSettings` instance,
+        which handles the fitting parameters required for the `kinProfile` functions,
+        with the last two paramters as `m0_shift` and `z`.
         """
         self.setAttr(**kwargs)
 
@@ -277,7 +312,7 @@ class FitEmissionLines2D(object):
     def analyze_results(self):
         """
         Analyze the MCMC results:
-            Calculations on sampler chain, plotting of best-fit values
+        Calculations on sampler chain, plotting of best-fit values
         """
         if self.sampler_dict is None:
             self.reload_sampler()
@@ -389,7 +424,8 @@ class FitEmissionLines2D(object):
 
         # Clean up a few things:
         del fitEmis2DResults.galaxy.pstamp
-        del fitEmis2DResults.galaxy.spec2D.spec_hdr
+        if 'spec_hdr' in fitEmis2DResults.galaxy.spec2D.__dict__.keys():
+            del fitEmis2DResults.galaxy.spec2D.spec_hdr
 
 
         return fitEmis2DResults

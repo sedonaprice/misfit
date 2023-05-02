@@ -8,15 +8,15 @@
 from __future__ import print_function
 
 import numpy as np
-import pandas as pd
-import copy
+# import pandas as pd
+# import copy
 import os
-import sys
+# import sys
 
-import misfit.general.general_utils as utils
+# import misfit.general.general_utils as utils
 import misfit.general.io as io
 from scipy.stats import norm
-import six
+# import six
 
 
 import astropy.constants as constants
@@ -25,26 +25,46 @@ c_kms = c_cgs * 1.e-5 # from cm/s -> km/s
 c_AA = c_cgs * 1.e8  # go from cm/s -> AA/s
 
 
-#
 class EmissionLinesSpectrum1DModel(object):
     """
-    Define a spectrum made of multiple linesets set of emission lines and profiles for 1D spectra of a single lineset
-        (eg, Ha, OIII doublet, ...)
+    Class to define a spectrum made of multiple linesets set of emission lines 
+    and profiles for 1D spectra of a single lineset (eg, Ha, OIII doublet, ...)
 
-    Input:
-        names_arr:           eg, ['Halpha', 'NII'], ['OIII'], ['Hbeta']
+    Parameters
+    ----------
+    names_arr : array-like
+        Array of line names to fit, if `linenames_arr` is not specified. 
+        eg: ['Halpha', 'NII'], ['OIII'], ['Hbeta']
 
-        Fit parameters:
+    flux_arr :  array-like
+        Flux in flam (erg/s/cm2/Angstrom) of the brightest line for each in the set.
 
-        flux_arr:           flux in flam of brightests line for each in the set.
-        z:                  redshift
-        vel_disp:           dispersion of the line [km/s]
-        cont_coeff:         coefficients of continuum in 1.e-18 flam
+    z : float
+        Redshift
 
-        cont_order:         order of the continuum fit
-        shape1D:            currently only 'gaussian' is supported
+    vel_disp : float       
+        Line dispersion [km/s]
+
+    cont_coeff : float
+        Coefficient of the continuum in 1.e-18 erg/s/cm2/Angstrom
+
+    cont_order : int
+        Order of the continuum fit. Default: 1
+
+    shape1D : string, optional
+        Type of 1D profile shape to fit. Options: ['gaussian']. Default: 'gaussian'
+
+        
+    Methods
+    -------
+    make1DProfile : 
+        Generate 1D profile
+
+    residual1DProfile : 
+        Evaluate residual of the 1D profile relative to an input 1D spectrum. 
 
     """
+
     def __init__(self, **kwargs):
         self.names_arr = None
 
@@ -63,7 +83,7 @@ class EmissionLinesSpectrum1DModel(object):
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(kwargs)
 
         if self.shape1D != 'gaussian':
@@ -80,11 +100,11 @@ class EmissionLinesSpectrum1DModel(object):
         vel_disp = params['vel_disp'].value
 
         cont_coeff = np.array([])
-        for i in six.moves.xrange(self.cont_order+1):
+        for i in range(self.cont_order+1):
             cont_coeff = np.append(cont_coeff, params['cont_coeff'+str(i)].value*1.e-18)
         #
         flux_arr = np.array([])
-        for i in six.moves.xrange(len(self.names_arr)):
+        for i in range(len(self.names_arr)):
             flux_arr = np.append(flux_arr, params['flux'+str(i)].value)
 
         # Update values
@@ -96,14 +116,14 @@ class EmissionLinesSpectrum1DModel(object):
 
         profile = np.zeros(len(obswave_arr))
 
-        for i in six.moves.xrange(len(self.names_arr)):
+        for i in range(len(self.names_arr)):
             lineModel = EmissionLines1DModel(name=self.names_arr[i])
             lineModel.make1DProfile(obswave_arr, z, vel_disp, self.flux_arr[i])
             profile += lineModel.profile
 
         # Now add the continuum:
         #cont_profile = np.zeros(len(obswave_arr))
-        for i in six.moves.xrange(self.cont_order+1):
+        for i in range(self.cont_order+1):
             profile += cont_coeff[i]*np.power(obswave_arr,i)
 
         #profile += cont_profile
@@ -135,29 +155,56 @@ class EmissionLines(object):
 
 
 
-#
+
 class EmissionLines1DModel(EmissionLines):
     """
-    Define an emission line set and profiles for 1D spectra of a single lineset
-        (eg, Ha, OIII doublet, ...)
+    Class to define an emission line set and profiles for 1D spectra of 
+    a single lineset (eg, Ha, OIII doublet, ...)
 
-    Input:
-        name:               eg, Halpha, OIII
-        linenames_arr:      ['HA6565'] or ['OIII5008', 'OIII4960']
-        restwave_arr:       can be set from the info in lib of MISFIT
-        flux_ratio_arr:     can be set from the info in lib of MISFIT;
-                                ratio of lines (1. for strongest); eg [1.], [1., 0.3333]
-        flux:               flux in flam of brightests object
+    Parameters
+    ----------
 
-        z:                  redshift
-        vel_disp:           dispersion of the line [km/s]
+    flux : float
+        Flux of the brightest line, in erg/s/cm2
 
-        profile_function:   shape of profile. Currently provies a gaussian if none is set.
-                            profile_function input is assumed to be
-                            x (angs), mu (angs), vel_sig (km/s), flux
+    z : float
+        Redshift
+
+    vel_disp : float
+        Line velocity dispersion [km/s]
+
+    profile_function : function, optional
+        Shape of the 1D line profile. Input is assumed to be: 
+        x (Angstroms), mu (Angstroms), vel_sig (km/s), and total flux (erg/s/cm2)
+        Default: Gaussian (`gaussian_line()`)
+
+    name : string, optional
+        Line/line set name. eg, Halpha, OIII
+    
+    linenames_arr : array-like, optional
+        Array of line names in line set. eg, ['HA6565'] or ['OIII5008', 'OIII4960']
+        Can be set from lib info based on the `name` attribute.
+
+    restwave_arr : array-like, optional
+        Restframe wavelength of the lines named in `linenames_arr`. 
+        Can be set from lib info based on the `name` attribute.
+
+    flux_ratio_arr : array-like, optional
+        Ratio of line strengths for the lines named in `linenames_arr`, 
+        normalized to 1. for the strongest line. eg, [1.], [1., 0.3333]
+        Can be set from lib info based on the `name` attribute.
+        
+    Methods
+    -------
+    make1DProfile : 
+        Generate 1D profile
+
+    Notes
+    -----
+    To specify the specific line(s), either input `name`, or 
+    explicitly set `linenames_arr`, `restwave_arr`, and `flux_ratio_arr`.
 
     """
-
     def __init__(self, profile_function=None, **kwargs):
 
         EmissionLines.__init__(self,None,None,None,None)
@@ -169,12 +216,12 @@ class EmissionLines1DModel(EmissionLines):
         self.obswave_arr = None
         self.profile = None
 
-        self.profile_func = profile_function if profile_function else GaussianLine
+        self.profile_func = profile_function if profile_function else gaussian_line
 
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(kwargs)
 
         if (self.linenames_arr is None):
@@ -212,7 +259,7 @@ class EmissionLines1DModel(EmissionLines):
 
         profile = np.zeros(len(obswave_arr))
 
-        for i in six.moves.xrange(len(self.linenames_arr)):
+        for i in range(len(self.linenames_arr)):
             profile += self.profile_func(self.obswave_arr,
                             self.restwave_arr[i]*(1.+self.z), self.vel_disp, self.flux*self.flux_ratio_arr[i])
 
@@ -222,7 +269,7 @@ class EmissionLines1DModel(EmissionLines):
 
 
 
-def GaussianLine(x, mu, vel_sig, flux):
+def gaussian_line(x, mu, vel_sig, flux):
     # Mu: wavelength
 
     # Convert vel_sig into sig in wavelength:

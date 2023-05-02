@@ -10,14 +10,14 @@ import misfit
 import numpy as np
 
 import timeit
-import time
+# import time
 
 
 def test_2d_model_creation_time():
     N = 10
     repeat = 3
     rept = timeit.repeat("test_2d_model_creation()",
-            setup="from misfit.tests.test_model2d import test_2d_model_creation",
+            setup="from test_model2d_creation import test_2d_model_creation",
             repeat=repeat, number=N)
     best = min(rept)
     usec = best * 1e6 / N
@@ -31,7 +31,7 @@ def test_2d_model_creation_time():
             sec = msec / 1e3
             besttime = "{:0.1f} s".format(sec)
     print("------------------------------------------------")
-    print("misfit.tests.test_2d_model_creation_time():")
+    print("misfit: tests.test_2d_model_creation_time():")
     print("   {} loops, best of {}: {} per loop".format(N, repeat, besttime))
     print("------------------------------------------------")
 

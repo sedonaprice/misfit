@@ -10,7 +10,10 @@ import numpy as np
 from astropy.wcs import WCS
 
 import matplotlib
-
+try:
+    os.environ["DISPLAY"]
+except:
+    matplotlib.use("agg")
 #matplotlib.rcParams['text.usetex'] = False
 
 import matplotlib.pyplot as plt
@@ -23,7 +26,7 @@ except:
     from .plot_utils import rotate_pstamp, rot_object_center, rot_corner_coords, convolve_rot_gal
 
 
-import six
+# import six
 
 cmap = cm.gray_r
 cmap_name = 'gray_r'
@@ -43,14 +46,23 @@ def plot_image_slit(galaxy=None, instrument=None,
         shift_label=None, lw_slit=1,
         verbose=False ):
     """
-    Input:
-        Galaxy object
-        Instrument object (Imaging)
+    Plot the galaxy image with the slit aperture overlaid.
 
-    Optional:
-        ax:             axes instance. If set, must reside in pre-defined figure,
-                          and already be created (using proper gridspec positioning, etc)
-        saveToFile:     (True/False) Save current axis instance to file. 'fileout' must be set.
+    Parameters
+    ----------
+    galaxy : `misfit.Galaxy` instance
+        Galaxy instance, holding the image pstamp.
+
+    instrument_img : `misfit.Imager` instance
+        Imaging instrument instance.
+
+        
+    fileout : string, optional
+        Output filename. Will save to file if `saveToFile=True`
+
+    saveToFile : bool, optional
+        Flag of whether to save the plot to file. Default: False
+
     """
     if 're_arcsec' in galaxy.__dict__.keys():
         plot_galfit = True
@@ -260,9 +272,9 @@ def plot_image_slit(galaxy=None, instrument=None,
 
     if external_ax is False:
         try:
-            title = '\_{}'.join(galaxy.maskname.split('_'))+'.'+instrument_img.band+'.'+str(galaxy.ID)
+            title = r'\_{}'.join(galaxy.maskname.split('_'))+'.'+instrument_img.band+'.'+str(galaxy.ID)
         except:
-            title = '\_{}'.join(galaxy.field.split('_'))+'.'+instrument_img.band+'.'+str(galaxy.ID)
+            title = r'\_{}'.join(galaxy.field.split('_'))+'.'+instrument_img.band+'.'+str(galaxy.ID)
         ax.set_title(title)
 
 
@@ -355,7 +367,7 @@ def plot_image_slit(galaxy=None, instrument=None,
 
             # Update output string
             q_new = semi_minor/semi_major
-            s='b/a$_{\mathrm{int}}$='+str(axis_ratio)+', b/a={:.4f}'.format(q_new)
+            s=r'b/a$_{\mathrm{int}}$='+str(axis_ratio)+', b/a={:.4f}'.format(q_new)
 
 
         if show_galfit:
@@ -451,7 +463,7 @@ def box_integrate_pstamp(pstamp_trim_orig, xarc_orig, yarc_orig,
 
     #   first, for all columns, collapse over rows
     pstamp_arr_tmp = np.zeros((len(yarc_new), len(xarc_orig)))
-    for i in six.moves.xrange(len(xarc_orig)):
+    for i in range(len(xarc_orig)):
         pslice = pstamp_trim_orig[:,i]
 
         # Now it's an array you can normal box integrate over:
@@ -461,7 +473,7 @@ def box_integrate_pstamp(pstamp_trim_orig, xarc_orig, yarc_orig,
 
     #   then for all rows, collapse over columns
     pstamp_trim = np.zeros((len(yarc_new), len(xarc_new)))
-    for j in six.moves.xrange(len(yarc_new)):
+    for j in range(len(yarc_new)):
         pslice = pstamp_arr_tmp[j,:]
         pslice_down = box_integrate(xarc_orig, pslice, xarc_new)
         pstamp_trim[j,:] = pslice_down
@@ -484,7 +496,7 @@ def box_integrate(x, y, x_new, debug=False):
 
     y_new = np.zeros(len(x_new))
 
-    for i in six.moves.xrange(len(x_new)):
+    for i in range(len(x_new)):
         # For each element in the new array:
         # Bounds of that interval
         low = x_new[i] - delt_x_new/2.

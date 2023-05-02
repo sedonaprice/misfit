@@ -8,35 +8,41 @@
 
 from __future__ import print_function
 
+import os
 import matplotlib as mpl
-mpl.use('agg')
+try:
+    os.environ["DISPLAY"]
+except:
+    mpl.use("agg")
 #mpl.rcParams['text.usetex'] = True #False
 
 import matplotlib.pyplot as plt
 
 
 import numpy as np
-import pandas as pd
-import copy
+# import pandas as pd
+# import copy
 import os
-import sys
+# import sys
 
 import pickle
-import six
-
-from scipy.stats import norm
-
-try:
-    import misfit.general.general_utils as utils
-    import misfit.general.io as io
-    from misfit.model.emission_lines_model import EmissionLinesSpectrum1DModel
-except:
-    from ..general import general_utils as utils
-    from ..general import io as io
-    from ..model.emission_lines_model import EmissionLinesSpectrum1DModel
+# import six
 
 
 import lmfit
+
+
+# from scipy.stats import norm
+
+try:
+    # import misfit.general.general_utils as utils
+    import misfit.general.io as io
+    from misfit.model.emission_lines_model import EmissionLinesSpectrum1DModel
+except:
+    # from ..general import general_utils as utils
+    from ..general import io as io
+    from ..model.emission_lines_model import EmissionLinesSpectrum1DModel
+
 
 import astropy.constants as _constants
 c_cgs = _constants.c.cgs.value
@@ -46,39 +52,71 @@ c_AA = c_cgs * 1.e8  # go from cm/s -> AA/s
 
 class FitEmissionLines1D(object):
     """
-    Fit the flux and velocity dispersion of a 1D spectrum, using a set of lines.
+    Class to fit the flux and velocity dispersion of a 1D spectrum, 
+    using a set of line(s).
+
+    Parameters
+    ----------
+    galaxy : `misfit.Galaxy` instance
+        Galaxy instance, holding a `misfit.spec1D` instance 
+        containing the galaxy 1D spectrum, uncertainty, etc.
+
+    instrument : `misfit.Spectrograph` instance
+        Spectrograph instance. Note `instrument.instrument_resolution` should be in km/s, 
+        which is needed to use `FitEmissionLines1D.calculate_inst_corr_vel_disp()`
+
+    flux_arr :  array-like
+        Initial guess of the flux (erg/s/cm2) 
+        of the brightest line for each in the set.
+
+    z : float
+        Initial guess of the redshift
+
+    vel_disp : float       
+        Initial guess of the line dispersion [km/s]
+
+    names_arr : array-like, optional
+        Array of line names to fit, if `linenames_arr` is not specified. 
+        eg: ['Halpha', 'NII'], ['OIII'], ['Hbeta']
+
+    linenames_arr : array-like, optional
+        Array of line group names.
+
+    restwave_arr : array-like, optional
+        Array of restframe wavelengths corresponding to the lines specified by 
+        `linenames_arr`.
+
+    trim_restwave_range : array-like, optional
+        Restframe wavelength range to which to trim the spectra for fitting
+
+    trim_wave_paramfile : string, optional
+        Filename with wavelength to trim the spectrum for fitting
 
 
+    shape1D : string, optional
+        Type of 1D profile shape to fit. Options: ['gaussian']. Default: 'gaussian'
 
-    Define a spectrum made of multiple linesets set of emission lines and profiles for 1D spectra of a single lineset
-        (eg, Ha, OIII doublet, ...)
+    cont_order : int, optional
+        Order of the continuum fit. Default: 1
+        
+    del_obs_lam : float, optional
+        +- Observed angstroms for optimizing the redshift solution. Default: 20.
 
-    Input:
-        galaxy              galaxy class
-            spec1D          1D spectrum for the galaxy
-        instrument.instrument_resolution should be in km/s,
-                    and is needed for using FitEmissionLines1D.calculate_inst_corr_vel_disp()
+    Methods
+    -------
+    fit : 
+        Use LMFIT to find best-fit parameters for the 1D spectra.
 
-        names_arr:          eg: ['Halpha', 'NII'], ['OIII'], ['Hbeta']
+    calculate_inst_corr_vel_disp : 
+        Calculate the instrument-corrected velocity dispersion, in km/s
 
-        Fit parameters: set to initial value before fitting
-
-        flux_arr:           flux in flam of brightest line for each in the set.
-        z:                  redshift
-        vel_disp:           dispersion of the line [km/s]
-
-        Fixed fit params
-        cont_order:    order of the continuum fit
-        shape1D:            currently only 'gaussian' is supported
-
-    Optional:
-        linenames_arr =         set of linenames for each set of lines
-        restwave_arr =          set of restwaves for each set of lines
-        trim_restwave_range     restframe wavelength to trim the spectra for fitting
-        trim_wave_paramfile     file with wavelength to trim the spectrum for fitting
-        del_obs_lam:            +- obs angstroms for optimizing z ; default = 20.
+    Notes
+    -----
+    To specify the lines to be modeled & fit, either input `linegroup_name`, or 
+    explicitly set `linenames_arr`, `restwave_arr`
 
     """
+     
     def __init__(self, **kwargs):
 
         # self.galaxy = galaxy
@@ -112,7 +150,7 @@ class FitEmissionLines1D(object):
         self.setup_spectrum()
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
         self.z = self.galaxy.z
@@ -121,7 +159,6 @@ class FitEmissionLines1D(object):
             raise ValueError('Non-gaussian line profiles are currently not supported')
 
 
-        #
         if (self.linenames_arr is None):
 
             linenames_arr = []
@@ -147,6 +184,9 @@ class FitEmissionLines1D(object):
             self.restwave_arr = np.array(waves_arr)
 
     def setup_spectrum(self):
+        """
+        Setup the 1D spectrum for fitting. Perform trimming, masking of edges, etc.
+        """
         if (self.trim_restwave_range is None) and (self.trim_wave_paramfile is None):
             # set this from lib if not set:
             d = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib')
@@ -177,13 +217,13 @@ class FitEmissionLines1D(object):
             params.add('vel_disp', value=self.vel_disp)#, min=0.)
 
         if flux_bound:
-            for i in six.moves.xrange(len(self.names_arr)):
+            for i in range(len(self.names_arr)):
                 params.add('flux'+str(i), value=self.flux_arr[i], min=0.)
         else:
-            for i in six.moves.xrange(len(self.names_arr)):
+            for i in range(len(self.names_arr)):
                 params.add('flux'+str(i), value=self.flux_arr[i])
 
-        for i in six.moves.xrange(self.cont_order+1):
+        for i in range(self.cont_order+1):
             params.add('cont_coeff'+str(i), value=self.cont_coeff[i])
 
         return params
@@ -195,30 +235,50 @@ class FitEmissionLines1D(object):
         """
         Use LMFIT to find best-fit parameters for the 1D spectra.
 
-        Usage:
+        Parameters
+        ----------
+        err_filename : string
+            Filename for saving the Monte Carlo uncertainty calculation. 
+            Must be set if `noErrors=False` or `reload_errors=True`.
+
+        plot_filename : string
+            Filename for saving the fit diagnostic plot. 
+            Must be set if `noPlot=False`. 
+
+        noErrors : bool, optional
+            Don't calculate errors (through Monte Carlo perturbation). 
+            Default: False
+
+        noPlot : bool, optional
+            Don't plot the fit diagnostic plot. Default: False
+
+        reload_errors : bool, optional
+            Reload a pre-calculated Monte Carol perturbation uncertainty array. 
+            Default: False.
+
+
+
+        Notes
+        -----
+        The usage is as follows:
+
             fitEmis1D = FitEmissionLines1D(....)
             fitEmis1D.fit()
             z = fitEmis1D.z
             ...
 
-        Options:
-            noErrors:           don't calculate errors (Monte Carlo perturb.)
-            noPlot:             don't plot fit diagnostic plot
-            err_filename:       specify absolute output filename for MC value matrix
-            plot_filename:      specify absolute output plot filename
-
-        Returns:
-            unpack by reading from FitEmissionLines1D parameters below
+        The results are stored in the following instance attributes:
 
             FitEmissionLines1D.
-                    z
-                    vel_disp
-                    flux_arr
-                    cont_coeff
-                    z_err
-                    vel_disp_err
-                    flux_arr_err
-                    cont_coeff_err
+                z
+                vel_disp
+                flux_arr
+                cont_coeff
+                z_err
+                vel_disp_err
+                flux_arr_err
+                cont_coeff_err
+
         """
 
         if self.instrument.instrument_resolution < 0.:
@@ -230,13 +290,13 @@ class FitEmissionLines1D(object):
         # Initialize cont_coeff if it's missing:
         if self.cont_coeff is None:
             cont_coeff_tmp = np.array([])
-            for i in six.moves.xrange(self.cont_order+1):
+            for i in range(self.cont_order+1):
                 cont_coeff_tmp = np.append(cont_coeff_tmp, 0.)
             self.cont_coeff = cont_coeff_tmp
 
         params = self.make_params()
 
-        raise ValueError
+        # raise ValueError
 
         emisModel = EmissionLinesSpectrum1DModel(names_arr=self.names_arr,
                         cont_order=self.cont_order, shape1D=self.shape1D)
@@ -295,12 +355,12 @@ class FitEmissionLines1D(object):
 
 
         cont_coeff = np.array([])
-        for i in six.moves.xrange(self.cont_order+1):
+        for i in range(self.cont_order+1):
             cont_coeff = np.append(cont_coeff, self.lmfit_result.params['cont_coeff'+str(i)].value)
         self.cont_coeff = cont_coeff
 
         flux_arr = np.array([])
-        for i in six.moves.xrange(len(self.names_arr)):
+        for i in range(len(self.names_arr)):
             flux_arr = np.append(flux_arr, self.lmfit_result.params['flux'+str(i)].value)
         self.flux_arr = flux_arr
 
@@ -337,8 +397,8 @@ class FitEmissionLines1D(object):
 
             ###########
 
-            for i in six.moves.xrange(len(self.names_arr)):
-                for j in six.moves.xrange(len(self.restwave_arr[i])):
+            for i in range(len(self.names_arr)):
+                for j in range(len(self.restwave_arr[i])):
                     ax.axvline(x=(1.+self.z)*self.restwave_arr[i][j],
                                 ls='-', color='black', alpha=0.8,zorder=-15)
                     ax.axvline(x=(1.+self.galaxy.z)*self.restwave_arr[i][j],
@@ -378,7 +438,7 @@ class FitEmissionLines1D(object):
                 # Structure of value matrix: columns:
                 #  z_fit   vel_disp   flux_line0 ... flux_linen-1  cont_coeff0 .. cont_coeffn-1
 
-                for i in six.moves.xrange(self.num_MC):
+                for i in range(self.num_MC):
                     #print "MC error iter %i/%i" % (i+1,self.num_MC)
                     if ( ((i+1) % 50 == 0)):
                         print("MC error iter {:3d}/{:3d}".format(i+1,self.num_MC))
@@ -395,12 +455,12 @@ class FitEmissionLines1D(object):
                     if fix_z:
                         params_best['z'].vary = False
 
-                    for jj in six.moves.xrange(len(self.names_arr)):
+                    for jj in range(len(self.names_arr)):
                         params_best.add('flux'+str(jj), value=self.flux_arr[jj])
                         if fix_flux:
                             params_best['flux'+str(jj)].vary = False
 
-                    for jj in six.moves.xrange(self.cont_order+1):
+                    for jj in range(self.cont_order+1):
                         params_best.add('cont_coeff'+str(jj), value=self.cont_coeff[jj])
                         if fix_cont:
                             params_best['cont_coeff'+str(jj)].vary = False
@@ -419,10 +479,10 @@ class FitEmissionLines1D(object):
                     value_matrix[i,0] = result_mc.params['z'].value
                     value_matrix[i,1] = result_mc.params['vel_disp'].value
                     jj = 1
-                    for j in six.moves.xrange(len(self.names_arr)):
+                    for j in range(len(self.names_arr)):
                         jj += 1
                         value_matrix[i,jj] = result_mc.params['flux'+str(j)].value
-                    for j in six.moves.xrange(self.cont_order+1):
+                    for j in range(self.cont_order+1):
                         jj += 1
                         value_matrix[i,jj] = result_mc.params['cont_coeff'+str(j)].value
 
@@ -461,7 +521,7 @@ class FitEmissionLines1D(object):
         if not noPlot:
 
             cont_model = np.zeros(len(self.galaxy.spec1D_trim.obswave))
-            for i in six.moves.xrange(self.cont_order+1):
+            for i in range(self.cont_order+1):
                 cont_model += self.lmfit_result.params['cont_coeff'+str(i)].value*1.e-18*\
                             np.power(self.galaxy.spec1D_trim.obswave,i)
 
@@ -473,7 +533,7 @@ class FitEmissionLines1D(object):
             ax.set_xlabel(r'$\lambda$')
             ax.set_ylabel(r'$F_{\lambda}$')
             names_cat = ''
-            for j in six.moves.xrange(len(self.names_arr)):
+            for j in range(len(self.names_arr)):
                 if j > 0:
                     names_cat += '+'
                 names_cat += self.names_arr[j]
@@ -509,7 +569,7 @@ class FitEmissionLines1D(object):
 
 
             if self.galaxy.maskname is not None:
-                title = '\_'.join(self.galaxy.maskname.split('_'))+'-'+str(self.galaxy.ID)+' '+names_cat
+                title = r'\_'.join(self.galaxy.maskname.split('_'))+'-'+str(self.galaxy.ID)+' '+names_cat
             else:
                 title = self.galaxy.field+'-'+str(self.galaxy.ID)+' '+names_cat
 
@@ -530,9 +590,8 @@ class FitEmissionLines1D(object):
                 noErrors=False,
                 err_filename=None):
         """
-            Use instrument resoultion to calculate corrected velocity dispersion
-            Requries FitEmissionLines1D.instrument.instrument_resolution to be
-                set to instrument resolution (in km/s)
+        Use instrument resoultion to calculate corrected velocity dispersion
+        Requries FitEmissionLines1D.instrument.instrument_resolution in km/s.
         """
         if self.instrument.instrument_resolution is None:
             print("Must set FitEmissionLines1D.instrument.instrument_resolution to use calculate_inst_corr_vel_disp()")

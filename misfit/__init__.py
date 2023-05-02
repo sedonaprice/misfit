@@ -3,14 +3,10 @@
 import os
 
 import matplotlib
-#matplotlib.use('agg')
 try:
     os.environ["DISPLAY"]
 except:
     matplotlib.use("agg")
-
-# from .galaxy import *
-# from .instrument import *
 
 from .galaxy import GalaxyBasic, Galaxy, Spectrum, ObsSpectrum, \
         ObsSpectrum1D, ObsSpectrum2D, ObsSpectrum2DBasic, Pstamp
@@ -23,7 +19,6 @@ try:
     import model
     import plot
     import mock
-    import tests
 
     from galaxy import Galaxy
 
@@ -44,7 +39,6 @@ except:
     from . import model
     from . import plot
     from . import mock
-    from . import tests
 
     from .galaxy import Galaxy
 
@@ -61,6 +55,5 @@ except:
 
 
 
+__version__ = "0.0.alpha"
 
-
-# Should define tests here

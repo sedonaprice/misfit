@@ -27,7 +27,7 @@ class PSFBase(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         #self.__dict__.update(kwargs)
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
@@ -98,7 +98,7 @@ class Instrument(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         #self.__dict__.update(kwargs)
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 

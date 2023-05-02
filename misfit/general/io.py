@@ -16,11 +16,17 @@ from astropy.io import ascii as _ascii
 
 deg2rad = np.pi/180.
 
+def ensure_dir(dir):
+   if not os.path.exists(dir):
+       print( "Making path=", dir)
+       os.makedirs(dir)
+   
+   return None
 
 def read_line_names(param_filename, name=None):
     """
     Read line set file: name of grouping and indiv names
-        format: commented header: # name  lineset
+    format: commented header: # name  lineset
 
     Set strongest line of set to 1.
     """
@@ -48,7 +54,7 @@ def read_line_names(param_filename, name=None):
 def read_restwave(param_filename, linename=None):
     """
     Read line rest wavelengths
-        format: commented header: # linename  restwave
+    format: commented header: # linename  restwave
     """
     data = _ascii.read(param_filename, format='commented_header')
 
@@ -64,7 +70,7 @@ def read_restwave(param_filename, linename=None):
 def read_line_ratio(param_filename, linename=None):
     """
     Read line set ratio file.
-        format: commented header: # linename  strength
+    format: commented header: # linename  strength
 
     Set strongest line of set to 1.
     """
@@ -83,7 +89,7 @@ def read_line_ratio(param_filename, linename=None):
 def read_wave_range(param_filename,linename=None):
     """
     Read fitting or other wavelength range from a parameters file.
-        format: commented header: # linename  wave_l   wave_u
+    format: commented header: # linename  wave_l   wave_u
     """
     data = _ascii.read(param_filename, format='commented_header')
 
@@ -101,7 +107,7 @@ def read_wave_range(param_filename,linename=None):
 def read_skyline_band_cutoff(param_filename, band=None):
     """
     Read fitting or other wavelength range from a parameters file.
-        format: commented header: # band  sn_cutoff   units
+    format: commented header: # band  sn_cutoff   units
     """
     data = _ascii.read(param_filename, format='commented_header')
 

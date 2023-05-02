@@ -10,19 +10,25 @@ import numpy as np
 import os
 
 import matplotlib
-
+try:
+    os.environ["DISPLAY"]
+except:
+    matplotlib.use("agg")
 #matplotlib.rcParams['text.usetex'] = False
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib import cm
 
-import six
+# import six
 
 def plot_trace(sampler_dict, fitEmis2D, fileout=None, usetex=True):
+    """
+    Plot trace for the free parameters from a 2D MCMC fit
+    """
     names = []
 
-    for i in six.moves.xrange(len(fitEmis2D.kinModel.theta)):
+    for i in range(len(fitEmis2D.kinModel.theta)):
         if fitEmis2D.kinModel.theta_vary[i]:
             names.append(fitEmis2D.kinModel.theta_names_nice[i])
 
@@ -49,19 +55,19 @@ def plot_trace(sampler_dict, fitEmis2D, fileout=None, usetex=True):
     lwTrace = 1.5
     trace_inds = np.random.randint(0,nWalkers, size=nTraceWalkers)
     trace_colors = []
-    for i in six.moves.xrange(nTraceWalkers):
+    for i in range(nTraceWalkers):
         trace_colors.append(cmap(1./np.float(nTraceWalkers)*i))
 
     norm_inds = np.setdiff1d(range(nWalkers), trace_inds)
 
 
 
-    for k in six.moves.xrange(nRows):
+    for k in range(nRows):
         axes.append(plt.subplot(gs[k,0]))
 
         axes[k].plot(sampler_dict['chain'][norm_inds,:,k].T, '-', color='black', alpha=alpha)
 
-        for j in six.moves.xrange(nTraceWalkers):
+        for j in range(nTraceWalkers):
             axes[k].plot(sampler_dict['chain'][trace_inds[j],:,k].T, '-',
                     color=trace_colors[j], lw=lwTrace, alpha=alphaTrace)
 

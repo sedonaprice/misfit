@@ -8,13 +8,14 @@
 from __future__ import print_function
 
 
-from multiprocessing import cpu_count, Pool
+# from multiprocessing import cpu_count, Pool
+from multiprocessing import Pool
 
 import numpy as np
 
-import pickle
-import json
-import six
+# import pickle
+# import json
+# import six
 
 import emcee
 import psutil
@@ -23,9 +24,11 @@ import psutil
 # except:
 #     pass
 
+acor_force_min = 49
 
-if np.int(emcee.__version__[0]) >= 3:
-    import h5py
+
+# if int(emcee.__version__[0]) >= 3:
+#     import h5py
 
 import copy
 
@@ -87,7 +90,7 @@ class FitEmissionLines2DResults(object):
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -118,7 +121,7 @@ class FitEmissionLines2DBasic(object):
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -137,7 +140,7 @@ def initialize_fitting_theta(theta, theta_vary):
     # Get intial fitting values
     j = 0
     theta_fitting_init = np.array([])
-    for i in six.moves.xrange(len(theta)):
+    for i in range(len(theta)):
         if theta_vary[i]:
             theta_fitting_init = np.append(theta_fitting_init, theta[i])
 
@@ -228,7 +231,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
     # --------------------------------
     # Initialize walker starting positions
     keys = []
-    for j in six.moves.xrange(len(fitEmis2D.kinModel.theta_names)):
+    for j in range(len(fitEmis2D.kinModel.theta_names)):
         if fitEmis2D.kinModel.theta_vary[j]:
             keys.append(fitEmis2D.kinModel.theta_names[j])
 
@@ -278,7 +281,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
             pos = initial_pos
             prob = None
             state = None
-            for k in six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
+            for k in range(fitEmis2D.mcmcOptions.nBurn):
                 print( "k={:3d}, time: {}".format(k, datetime.datetime.now()) )
                 pos, prob, state = sampler.run_mcmc(pos, 1, lnprob0=prob, rstate0=state)
 
@@ -287,13 +290,13 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
             elapsed = end-start
 
             # try:
-            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
             # except:
             #     acor_time = "Undefined, chain did not converge"
 
 
             try:
-                acor_time = sampler.get_autocorr_time(self, low=5, c=10)
+                acor_time = sampler.get_autocorr_time(fitEmis2D, low=5, c=10)
             except:
                 acor_time = "Undefined, chain did not converge"
 
@@ -373,7 +376,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
 
         # --------------------------------
         # Run sampler: output info at each step
-        for ii in six.moves.xrange(fitEmis2D.mcmcOptions.nSteps):
+        for ii in range(fitEmis2D.mcmcOptions.nSteps):
             pos_cur = pos.copy()    # copy just in case things are set strangely
 
             # --------------------------------
@@ -387,7 +390,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
                             datetime.datetime.now()) )
 
             # try:
-            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
             #     f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
             # except RuntimeError:
             #     f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
@@ -435,8 +438,8 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
         elapsed = end-start
         f_log.write("Finished {} steps".format(finishedSteps)+"\n")
         try:
-            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
-            acor_time = sampler.get_autocorr_time(self, low=5, c=10)
+            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
+            acor_time = sampler.get_autocorr_time(fitEmis2D, low=5, c=10)
         except:
             acor_time = "Undefined, chain not converged"
 
@@ -497,7 +500,7 @@ def _run_mcmc_emcee_221(fitEmis2D, fitEmis2D_fit=None):
     return fitEmis2D
 
 #
-def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
+def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None):
     """
     Run emcee to do 2D kin fitting using fitEmis2D. Option to pass fitEmis2D_fit,
     a version of fitEmis2D that is very pared down, for faster copying+calculation.
@@ -532,9 +535,10 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
 
     moves = emcee.moves.StretchMove(a=fitEmis2D.mcmcOptions.scale_param_a)
 
-    backend_burn = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="burnin_mcmc")
+    backend_burn = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, 
+                                             name="burnin_mcmc")
 
-    if overwrite:
+    if fitEmis2D.mcmcOptions.overwrite:
         backend_burn.reset(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param)
 
     # sampler_burn = emcee.EnsembleSampler(nWalkers, nDim, lnprob,
@@ -549,7 +553,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
     # --------------------------------
     # Initialize walker starting positions
     keys = []
-    for j in six.moves.xrange(len(fitEmis2D.kinModel.theta_names)):
+    for j in range(len(fitEmis2D.kinModel.theta_names)):
         if fitEmis2D.kinModel.theta_vary[j]:
             keys.append(fitEmis2D.kinModel.theta_names[j])
 
@@ -597,7 +601,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
             pos = initial_pos
             prob = None
             state = None
-            for k in six.moves.xrange(fitEmis2D.mcmcOptions.nBurn):
+            for k in range(fitEmis2D.mcmcOptions.nBurn):
                 print( "k={:3d}, time: {}".format(k, datetime.datetime.now()) )
                 pos = sampler_burn.run_mcmc(pos, 1)
 
@@ -606,7 +610,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
             elapsed = end-start
 
             # try:
-            #     acor_time = [acor.acor(sampler_burn.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     acor_time = [acor.acor(sampler_burn.chain[:,:,jj])[0] for jj in range(sampler.dim)]
             # except:
             #     acor_time = "Undefined, chain did not converge"
 
@@ -682,7 +686,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
         # Start backend:
         backend = emcee.backends.HDFBackend(fitEmis2D.mcmcOptions.filename_sampler_h5, name="mcmc")
 
-        if overwrite:
+        if fitEmis2D.mcmcOptions.overwrite:
             backend.reset(fitEmis2D.mcmcOptions.nWalkers, fitEmis2D.kinModel.n_free_param)
 
         # sampler = emcee.EnsembleSampler(nWalkers, nDim, log_prob,
@@ -701,7 +705,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
 
         # --------------------------------
         # Run sampler: output info at each step
-        for ii in six.moves.xrange(fitEmis2D.mcmcOptions.nSteps):
+        for ii in range(fitEmis2D.mcmcOptions.nSteps):
             # --------------------------------
             # Only do one step at a time.
             pos = sampler.run_mcmc(pos, 1)
@@ -713,7 +717,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
                             datetime.datetime.now()) )
 
             # try:
-            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #     acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
             #     f_log.write("{:d}: acor_time = {}".format(ii,  np.array(acor_time) ) +"\n")
             # except RuntimeError:
             #     f_log.write(" {}: Chain too short for acor to run".format(ii) +"\n")
@@ -761,7 +765,7 @@ def _run_mcmc_emcee_3(fitEmis2D, fitEmis2D_fit=None, overwrite=True):
         elapsed = end-start
         f_log.write("Finished {} steps".format(finishedSteps)+"\n")
         try:
-            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in six.moves.xrange(sampler.dim)]
+            #acor_time = [acor.acor(sampler.chain[:,:,jj])[0] for jj in range(sampler.dim)]
             acor_time = sampler.get_autocorr_time(tol=10, quiet=True)
         except:
             acor_time = "Undefined, chain not converged"
@@ -908,7 +912,7 @@ def init_walker_pos(fitEmis2D, ndim=None, nwalkers=200):
 
     param_range, param_lower = utils.range_arrs(fitEmis2D)
 
-    pos = [np.random.random_sample(ndim)*param_range + param_lower for i in six.moves.xrange(nwalkers)]
+    pos = [np.random.random_sample(ndim)*param_range + param_lower for i in range(nwalkers)]
 
     return pos
 
@@ -934,7 +938,7 @@ def add_v_re_22(fitEmis2D):
             ind_all = fitEmis2D.kinModel.kinProfile.velProfile.n_params
             j = 0
             free_inds = []
-            for i in six.moves.xrange(len(fitEmis2D.kinModel.theta)):
+            for i in range(len(fitEmis2D.kinModel.theta)):
                 if fitEmis2D.kinModel.theta_vary[i]:
                     free_inds.append(j)
                     j += 1
@@ -950,7 +954,7 @@ def add_v_re_22(fitEmis2D):
 
     i_free = 0
     len_chain = fitEmis2D.sampler_dict['flatchain'].shape[0]
-    for i in six.moves.xrange(len(fitEmis2D.kinModel.theta)):
+    for i in range(len(fitEmis2D.kinModel.theta)):
         if fitEmis2D.kinModel.theta_vary[i]:
             if i > 0:
                 theta_chain = np.append(theta_chain,
@@ -990,7 +994,7 @@ def add_v_re_22(fitEmis2D):
     theta_names = []
     theta_names_nice = []
 
-    for i in six.moves.xrange(len(fitEmis2D.kinModel.theta_names)):
+    for i in range(len(fitEmis2D.kinModel.theta_names)):
         if fitEmis2D.kinModel.theta_vary[i]:
             theta_names.append(fitEmis2D.kinModel.theta_names[i])
             theta_names_nice.append(fitEmis2D.kinModel.theta_names_nice[i])
@@ -1030,7 +1034,7 @@ def get_param_posterior_bestfits(fitEmis2D):
     ## location of peaks of *marginalized histograms*
     ##      for each parameter
     mcmc_peak_hist = np.zeros(samples.shape[1])
-    for i in six.moves.xrange(samples.shape[1]):
+    for i in range(samples.shape[1]):
         yb, xb = np.histogram(samples[:,i], bins=50)
         wh_pk = np.where(yb == yb.max())[0][0]
         mcmc_peak_hist[i] = np.average([xb[wh_pk], xb[wh_pk+1]])
@@ -1068,7 +1072,7 @@ def get_param_posterior_bestfits(fitEmis2D):
     if fitEmis2D.theta_linked_posteriors is not None:
         mcmc_lims_zip = list(zip(*mcmc_limits))
 
-        for i in six.moves.xrange(len(fitEmis2D.theta_linked_posteriors)):
+        for i in range(len(fitEmis2D.theta_linked_posteriors)):
             mcmc_peak, mcmc_uncertainties_1sig = \
                     utils.get_bestfit_values_linked(fitEmis2D,
                     mcmc_uncertainties_1sig, mcmc_lims_zip,
@@ -1088,15 +1092,15 @@ def get_param_posterior_bestfits(fitEmis2D):
     # v_re_chain = fitEmis2D.sampler_dict['flatchain'][:,-2].copy()
     # vre_best = fitEmis2D.mcmc_results.bestfit_theta[-2]
     # v_re_chain *= np.sign(vre_best)
-    # percent_oppsign = len(np.where(v_re_chain < 0.)[0])/np.float(len(v_re_chain)) * 100.
+    # percent_oppsign = len(np.where(v_re_chain < 0.)[0])/float(len(v_re_chain)) * 100.
     # fitEmis2D.mcmc_results.percent_oppsign = percent_oppsign
 
     # For all params.
     opp_flatchain = np.sign(fitEmis2D.mcmc_results.bestfit_theta)*\
                 fitEmis2D.sampler_dict['flatchain'].copy()
     percent_oppsign = np.array([])
-    for i in six.moves.xrange(len(fitEmis2D.mcmc_results.bestfit_theta)):
-        perct_opp = len(np.where(opp_flatchain[:,i] < 0.)[0])/np.float(len(opp_flatchain[:,i])) * 100.
+    for i in range(len(fitEmis2D.mcmc_results.bestfit_theta)):
+        perct_opp = len(np.where(opp_flatchain[:,i] < 0.)[0])/float(len(opp_flatchain[:,i])) * 100.
         percent_oppsign = np.append(percent_oppsign, perct_opp)
 
     fitEmis2D.mcmc_results.percent_oppsign = percent_oppsign
@@ -1127,6 +1131,7 @@ class MCMC2DOptions(object):
         self.NoThread=False     # Option to not multithread
         self.runAllSteps=False  # Switch on to force run of all steps even if min,maxAF are specified
 
+        self.overwrite=True   
 
         # Optional output filenames for MCMC:
         self.filename_log = None
@@ -1141,7 +1146,7 @@ class MCMC2DOptions(object):
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def copy(self):
@@ -1150,7 +1155,7 @@ class MCMC2DOptions(object):
 class MCMCResults(object):
     """
     Class to hold results from 2D MCMC fitting:
-        bestfit parameters, 1sigma bounds, 2 sigma bounds, etc
+    bestfit parameters, 1sigma bounds, 2 sigma bounds, etc
     """
     def __init__(self, **kwargs):
         self.bestfit_theta = None
@@ -1164,5 +1169,5 @@ class MCMCResults(object):
         self.setAttr(**kwargs)
 
     def setAttr(self,**kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))

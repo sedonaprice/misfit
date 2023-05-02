@@ -5,7 +5,8 @@ from __future__ import print_function
 
 import numpy as np
 #from numba import jit
-from numba import njit
+# from numba import njit, objmode
+from numba import njit, objmode
 
 import astropy.constants as const
 c_kms = const.c.cgs.value/1.e5
@@ -13,11 +14,10 @@ c_kms = const.c.cgs.value/1.e5
 from scipy.signal import fftconvolve
 from scipy import integrate
 from scipy.stats import norm
-import six
+# import six
 
 # from skimage.transform import rotate as skimagerotate
 # from scipy.ndimage.interpolation import map_coordinates as scipymapcoords
-
 
 import lmfit
 
@@ -93,7 +93,7 @@ def add_sigma_collapse_z(I_wide, V_wide, sigma_wide,
     I_Vxy = np.zeros( (nWave,nY,nX) )    # Shape: (nWave,nY,nX))
 
     if spec_type == 'wave':
-        for i in six.moves.xrange(len(restwave_arr)):
+        for i in range(len(restwave_arr)):
             lam0 = restwave_arr[i] * (1.+z)
             # Sigma = sigma_profile(r)
             # Crude way of handling potential sigma = 0: just checking for MAX, not all values:
@@ -142,23 +142,23 @@ def I_simple_collapse(I_wide, V_wide, wave_arr,
 
     I_Vxy = np.zeros((nWave, nY, nX))
 
-    lam_step = delt_wave
+    # lam_step = delt_wave
 
     # for k in range(nX):
     #     for j in range(nY):
     #         # At every (x,y): for each z, find closest v bin, and add that to the intensity.
     #         for m in range(nZ):
-    for k in six.moves.xrange(np.int(nX)):
-        for j in six.moves.xrange(np.int(nY)):
+    for k in range(int(nX)):
+        for j in range(int(nY)):
             # At every (x,y): for each z, find closest v bin, and add that to the intensity.
-            for m in six.moves.xrange(np.int(nZ)):
+            for m in range(int(nZ)):
 
                 lam = lam0*(1.+V_wide[m,j,k]/c_kms)
                 I = I_wide[m,j,k]
                 lam_diff = np.abs(lam - wave_arr)
 
                 # Force it all into the closest pixel:
-                wh_closest = np.argmin(v_diff)
+                wh_closest = np.argmin(lam_diff)
                 I_Vxy[wh_closest,j,k] += I*delt_z
 
 
@@ -221,7 +221,7 @@ def calculate_effective_inst_res_lam_shift(I_wide_3d=None,
 
     # x_arr should be the UNSHIFTED coordinates
 
-    for k in six.moves.xrange(len(yarr)):
+    for k in range(len(yarr)):
         # Do gaussian fit to each row:
         A_tmp, mu_y[k], FWHM_arcsec[k] = lmfit_gaussian(xarr[wh_in_slit_x],
                                         I_arr_2D_conv[k,wh_in_slit_x])
@@ -409,10 +409,10 @@ def PSF_convolve_flat(pstamp, PSF):
 def rebin(a, *args):
     shape = a.shape
     lenShape = len(shape)
-    factor = np.array(np.asarray(shape)/np.asarray(args), dtype=np.int)
+    factor = np.array(np.asarray(shape)/np.asarray(args), dtype=int)
     evList = ['a.reshape('] + \
-             ['args[%d],factor[%d],'%(i,i) for i in six.moves.xrange(lenShape)] + \
-             [')'] + ['.sum(%d)'%(i+1) for i in six.moves.xrange(lenShape)]
+             ['args[%d],factor[%d],'%(i,i) for i in range(lenShape)] + \
+             [')'] + ['.sum(%d)'%(i+1) for i in range(lenShape)]
     return 1.*eval(''.join(evList))
 
 
@@ -420,8 +420,9 @@ def rebin(a, *args):
 #@jit
 @njit
 def convol_inst(model_out, xx, lam_cent, fwhm_array):
+    raise ValueError("Depreciated, do not use!")
     # for k in range(model_out.shape[1]):
-    for k in six.moves.xrange(model_out.shape[1]):
+    for k in range(model_out.shape[1]):
         wave_gaus = gaus_from_fwhm(xx, fwhm_array[k], lam_cent)
         # Replace non-finite with 0.
         wave_gaus[~np.isfinite(wave_gaus)] = 0.
@@ -648,7 +649,7 @@ def sigma_aper_dispersion(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec
         prof_sigma = (0.5*aperModel1DDisp.extraction_width/aperModel1DDisp.delt_y)/\
                     (2.*np.sqrt(2.*np.log(2.)))
         # y extent = number of ROWS - shape[0]
-        yy_prof = np.array(six.moves.xrange(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
+        yy_prof = np.array(range(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
 
         g_y = norm.pdf(yy_prof, 0., prof_sigma)
         g_y = g_y/np.sum(g_y)  # normalize
@@ -730,7 +731,7 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None,
     # # choose new delt_x very close to delt_xp, to avoid oversampling.
     # # But needs to satisfy delt_x = x_aper_half/(n_pix_x+0.5)
     # # Should be n_pix_x+0.5 across x_aper_half
-    # aperModel1DDisp.n_pix_x = np.int(np.round((0.5*aperModel1DDisp.x_aper/\
+    # aperModel1DDisp.n_pix_x = int(np.round((0.5*aperModel1DDisp.x_aper/\
     #                         aperModel1DDisp.delt_xp) - 0.5))
     # aperModel1DDisp.delt_x = (0.5*aperModel1DDisp.x_aper)/(aperModel1DDisp.n_pix_x+0.5)
     # #               calculate the new value of delt_x
@@ -786,7 +787,7 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None,
 
 
 
-    aperModel1DDisp.n_pix_x = np.int(np.round((0.5*aperModel1DDisp.x_aper/\
+    aperModel1DDisp.n_pix_x = int(np.round((0.5*aperModel1DDisp.x_aper/\
                             aperModel1DDisp.delt_x) - 0.5))
     aperModel1DDisp.delt_x = (0.5*aperModel1DDisp.x_aper)/(aperModel1DDisp.n_pix_x+0.5)
     #               calculate the new value of delt_x
@@ -816,7 +817,7 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None,
         prof_sigma = (0.5*aperModel1DDisp.extraction_width/aperModel1DDisp.delt_y)/\
                     (2.*np.sqrt(2.*np.log(2.)))
         # y extent = number of ROWS - shape[0]
-        yy_prof = np.array(six.moves.xrange(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
+        yy_prof = np.array(range(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
 
         g_y = norm.pdf(yy_prof, 0., prof_sigma)
         g_y = g_y/np.sum(g_y)  # normalize
@@ -843,6 +844,9 @@ def sigma_aper_dispersion_misalign(aperModel1DDisp = None,
 ########################################################
 ########################################################
 def sigma_aper_dispersion_misalign_ORIG(aperModel1DDisp = None, re_arcsec=None, re_mass_arcsec=None):
+
+    raise ValueError("Depreciated, do not use!")
+
     sig_sq_wide = disp_square(aperModel1DDisp.xp_arr_full, aperModel1DDisp.yp_arr_full,
                     q=aperModel1DDisp.galaxy.q, delt_PA=aperModel1DDisp.delt_PAp,
                     re_mass_arcsec=re_mass_arcsec,
@@ -897,7 +901,7 @@ def sigma_aper_dispersion_misalign_ORIG(aperModel1DDisp = None, re_arcsec=None, 
     # choose new delt_x very close to delt_xp, to avoid oversampling.
     # But needs to satisfy delt_x = x_aper_half/(n_pix_x+0.5)
     # Should be n_pix_x+0.5 across x_aper_half
-    aperModel1DDisp.n_pix_x = np.int(np.round((0.5*aperModel1DDisp.x_aper/\
+    aperModel1DDisp.n_pix_x = int(np.round((0.5*aperModel1DDisp.x_aper/\
                             aperModel1DDisp.delt_xp) - 0.5))
     aperModel1DDisp.delt_x = (0.5*aperModel1DDisp.x_aper)/(aperModel1DDisp.n_pix_x+0.5)
     #               calculate the new value of delt_x
@@ -967,7 +971,7 @@ def sigma_aper_dispersion_misalign_ORIG(aperModel1DDisp = None, re_arcsec=None, 
         prof_sigma = (0.5*aperModel1DDisp.extraction_width/aperModel1DDisp.delt_y)/\
                     (2.*np.sqrt(2.*np.log(2.)))
         # y extent = number of ROWS - shape[0]
-        yy_prof = np.array(six.moves.xrange(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
+        yy_prof = np.array(range(I_conv.shape[0])) - (I_conv.shape[0]-1.)/2.
 
         g_y = norm.pdf(yy_prof, 0., prof_sigma)
         g_y = g_y/np.sum(g_y)  # normalize
@@ -1055,4 +1059,4 @@ def I_sersic(r, re, n, Ie, r_core=1/300.):
 
     r_core_val = r_core*re #1/30.*re
 
-    return Ie*np.exp(-b_n*( (np.power( ((r + r_core_val)/re), (1./np.float(n)) )) - 1.) )
+    return Ie*np.exp(-b_n*( (np.power( ((r + r_core_val)/re), (1./float(n)) )) - 1.) )

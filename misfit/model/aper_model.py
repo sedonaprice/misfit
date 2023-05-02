@@ -10,7 +10,7 @@ except:
     from . import kin_functions as kfuncs
 
 from scipy.stats import norm
-import six
+# import six
 
 from misfit.general import general_utils as utils
 
@@ -41,7 +41,7 @@ class AperModel1DBase(object):
         self.setAttr(**kwargs)
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
 
@@ -354,7 +354,7 @@ class AperModel1DRot(AperModel1DBase):
 
         # Make num pix in x dir such that delt_x ~ delt_y, but delt_x*n_pix_x = slit_wid
         # so n_pix_x = slit_wid/delt_x
-        self.n_pix_x = np.int(np.ceil(self.instrument.slit_width/self.delt_y))
+        self.n_pix_x = int(np.ceil(self.instrument.slit_width/self.delt_y))
         self.delt_x = self.instrument.slit_width/self.n_pix_x
 
         # Use same number of pixels as in y in the z dir:
@@ -365,8 +365,8 @@ class AperModel1DRot(AperModel1DBase):
         # Pad in the x, y directions: PSF convolution.
         #   pad U/D, L/R by SEEING_FWHM*self.pad_factor
         # +-----------------------------------------------------------
-        self.padY = np.int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_y) ))
-        self.padX = np.int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_x) ))
+        self.padY = int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_y) ))
+        self.padX = int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_x) ))
 
         self.nX = self.n_pix_x + 2*self.padX
         self.nY = self.n_pix_y + 2*self.padY
@@ -424,7 +424,7 @@ class AperModel1DRot(AperModel1DBase):
             if (self.delta_position_velspace is None) or (self.inst_disp_wave is None):
                 #################
                 # Exclude the padded regions ????
-                wh_in_slit_x = np.array(six.moves.xrange(self.padX,self.n_pix_x+self.padX))
+                wh_in_slit_x = np.array(range(self.padX,self.n_pix_x+self.padX))
                 # Currently doesn't support MSA-style calculations.
                 # Want instrument res in vel_FWHM, not vel_disp -> *2.35
                 R = c_kms/(self.instrument.instrument_resolution*(2.*np.sqrt(2.*np.log(2.))))
@@ -445,7 +445,7 @@ class AperModel1DRot(AperModel1DBase):
 
         if self.do_position_wave_shift:
             # Add delta_position_velspace calculated from deltax_y to V matrix
-            for i in six.moves.xrange(self.nY):
+            for i in range(self.nY):
                 V_wide[:,i,:] += self.delta_position_velspace[i]
 
         self.RMS_sq_wide = (V_wide)**2 + (sigma_wide)**2
@@ -488,7 +488,7 @@ class AperModel1DRot(AperModel1DBase):
         if self.extraction_method == 'optimal':
             prof_sigma = (0.5*self.y_aper/self.delt_y)/(2.*np.sqrt(2.*np.log(2.)))
             # y extent = number of ROWS - shape[0]
-            yy_prof = np.array(six.moves.xrange(self.I_conv.shape[0])) - (self.I_conv.shape[0]-1.)/2.
+            yy_prof = np.array(range(self.I_conv.shape[0])) - (self.I_conv.shape[0]-1.)/2.
 
             g_y = norm.pdf(yy_prof, 0., prof_sigma)
             self.g_y = g_y/np.sum(g_y)  # normalize
@@ -509,8 +509,10 @@ class AperModel2D(object):
     """
     Use galaxy + instrument properties to generate mock obs kinematics
     observation described by kinProfile and theta
+
     Fiducial theta: [Va, rt, sigma0, m0shift, z]
-        m0shift, z should always be the last two entries.
+    
+    m0shift, z should always be the last two entries.
     """
     def __init__(self, **kwargs):
 
@@ -556,7 +558,7 @@ class AperModel2D(object):
         self.make_model()
 
     def setAttr(self, **kwargs):
-        """Set/update arbitrary attribute list with **kwargs"""
+        """Set/update arbitrary attribute list with kwargs"""
         self.__dict__.update(dict([(key, kwargs.get(key)) for key in kwargs if key in self.__dict__]))
 
     def setup_calcs(self):
@@ -660,7 +662,7 @@ class AperModel2D(object):
         else:
             self.n_pix_y_whole = self.galaxy.spec2D.shape[0]
 
-        self.n_pix_y = np.int(self.n_pix_y_whole*self.nSubpixels)
+        self.n_pix_y = int(self.n_pix_y_whole*self.nSubpixels)
 
         self.delt_y = self.instrument.pixscale/self.nSubpixels # Subpixel scale
 
@@ -669,7 +671,7 @@ class AperModel2D(object):
 
         # Make num pix in x dir such that delt_x ~ delt_y,
         #   but delt_x*n_pix_x = slit_wid,  so n_pix_x = slit_wid/delt_x
-        self.n_pix_x = np.int(np.ceil(self.instrument.slit_width/self.delt_y))
+        self.n_pix_x = int(np.ceil(self.instrument.slit_width/self.delt_y))
         # Check for case where slit width = slit length:
         #    make sure rounding errors don't end up with diff nPix.
         if self.y_aper == self.instrument.slit_width:
@@ -685,8 +687,8 @@ class AperModel2D(object):
         # Pad in the x, y directions: PSF convolution.
         #   pad U/D, L/R by SEEING_FWHM*self.pad_factor
         # +-----------------------------------------------------------
-        self.padY = np.int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_y) ))
-        self.padX = np.int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_x) ))
+        self.padY = int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_y) ))
+        self.padX = int(np.round(((self.instrument.PSF.PSF_FWHM*self.pad_factor)/self.delt_x) ))
 
 
         self.nX = self.n_pix_x + 2*self.padX
@@ -752,7 +754,7 @@ class AperModel2D(object):
 
             nwmin = self.wave_arr.min() - 0.5*(self.delt_wave_real - self.delt_wave)
             nwmax = self.wave_arr.max() + 0.5*(self.delt_wave_real - self.delt_wave)
-            wave_arr = np.linspace(nwmin, nwmax, num=np.int(np.round(((nwmax-nwmin)/self.delt_wave + 1))) )
+            wave_arr = np.linspace(nwmin, nwmax, num=int(np.round(((nwmax-nwmin)/self.delt_wave + 1))) )
             self.wave_arr = wave_arr
             self.nWave = len(self.wave_arr)
 
@@ -761,7 +763,6 @@ class AperModel2D(object):
             self.I_matrix = np.tile(self.I_wide, (self.nWave,1,1,1))
             self.wave_ref_matrix = np.repeat(self.wave_arr,
                     self.nZ*self.nY*self.nX).reshape((self.nWave,self.nZ,self.nY,self.nX))
-
 
 
     def calculate_spectral_cube(self):
@@ -794,7 +795,7 @@ class AperModel2D(object):
             if (self.delta_position_velspace is None) or (self.inst_disp_wave is None):
                 #################
                 # Exclude the padded regions ????
-                wh_in_slit_x = np.array(six.moves.xrange(self.padX,self.n_pix_x+self.padX))
+                wh_in_slit_x = np.array(range(self.padX,self.n_pix_x+self.padX))
                 # Currently doesn't support MSA-style calculations.
                 # Want instrument res in vel_FWHM, not vel_disp -> *2.35
                 R = c_kms/(self.instrument.instrument_resolution*(2.*np.sqrt(2.*np.log(2.))))
@@ -816,7 +817,7 @@ class AperModel2D(object):
 
         if self.do_position_wave_shift:
             # Add delta_position_velspace calculated from deltax_y to V matrix
-            for i in six.moves.xrange(self.nY):
+            for i in range(self.nY):
                 V_wide[:,i,:] += self.delta_position_velspace[i]
 
         # start = time.time()

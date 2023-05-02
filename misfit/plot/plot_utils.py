@@ -4,14 +4,14 @@
 
 from __future__ import print_function
 
-import pandas as pd
+# import pandas as pd
 import numpy as np
-import scipy as _sp
+# import scipy as _sp
 
-import six
+# import six
 
 from astropy.wcs import WCS
-from astropy import coordinates as coords
+# from astropy import coordinates as coords
 
 from scipy.ndimage.interpolation import rotate as scipyrotate
 from scipy.signal import fftconvolve
@@ -91,26 +91,29 @@ def x_sign_pos_angle(pos_angle):
 
 
 def rotate_pstamp(galaxy):
-        """
-        Rotate the pstamp so that the slit is vertical
-            -- whether it's a galaxy in the pstamp struc or a star
-        Input:
-            mosdef_general.base object -- star or galaxy
-        """
-        try:
-            # Here: care about slit_PA *ON IMAGE*
-            # slit_PA_on_img = galaxy.spec2D.slit_PA - galaxy.pstamp.img_PA
-            img_angle = galaxy.spec2D.slit_PA - galaxy.pstamp.img_PA
-            #                     # scipy rotate needs positive angle to rotate CW,
-                                  # opposite of convention otherwise used.
-        except:
-            img_angle = galaxy.spec1D.slit_PA - galaxy.pstamp.img_PA
+    """
+    Rotate the pstamp so that the slit is vertical, 
+    whether it's a galaxy in the pstamp struc or a star
 
-        pstamp_rot = scipyrotate(galaxy.pstamp.pstamp, img_angle,
-                axes=(1, 0),
-                reshape=False, order=5)
+    Parameters
+    ----------
+    galaxy : `misfit.Galaxy` or `mosdef_general.base` object
+        Instance holding either a star or a galaxy. 
+    """
+    try:
+        # Here: care about slit_PA *ON IMAGE*
+        # slit_PA_on_img = galaxy.spec2D.slit_PA - galaxy.pstamp.img_PA
+        img_angle = galaxy.spec2D.slit_PA - galaxy.pstamp.img_PA
+        #                     # scipy rotate needs positive angle to rotate CW,
+                                # opposite of convention otherwise used.
+    except:
+        img_angle = galaxy.spec1D.slit_PA - galaxy.pstamp.img_PA
 
-        return pstamp_rot
+    pstamp_rot = scipyrotate(galaxy.pstamp.pstamp, img_angle,
+            axes=(1, 0),
+            reshape=False, order=5)
+
+    return pstamp_rot
 
 
 def rot_coord_angle(arr, th, x0=0., y0=0.):
