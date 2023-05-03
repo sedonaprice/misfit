@@ -36,7 +36,7 @@ to an intrinsic RMS velocity (combining both rotation and random dispersion).
 These correction factors depend on the 
 galaxy structure and orientation relative to the slit, 
 and also require the assumption of a fixed ratio of 
-ordered-to-disordered motion (:math:`V/\sigma`).
+ordered-to-disordered motion ($V/σ$).
 
 
 This code was developed for the analysis of Keck/MOSFIRE spectra 
